@@ -6,6 +6,7 @@ import sys
 from pprint import pprint
 import xml.etree.ElementTree as ElementTree
 
+import ahto_lib
 import post_rater
 
 DELAY_BETWEEN_REQUESTS = 1 # seconds
@@ -108,18 +109,6 @@ def get_posts(limit, tags=None):
 
     return posts
 
-def lazy_property(fn):
-    attr_name = '_lazy_' + fn.__name__
-
-    @property
-    def _lazy_property(self):
-        if not hasattr(self, attr_name):
-            setattr(self, attr_name, fn(self))
-
-        return getattr(self, attr_name)
-
-    return _lazy_property
-
 class HypnohubPost(object):
     # Used by overall_rating
     def __init__(self, element_tree):
@@ -139,11 +128,11 @@ class HypnohubPost(object):
 
     __getitem__ = __getattr__
 
-    @lazy_property
+    @ahto_lib.lazy_property
     def tags(self):
         return self.element_tree.attrib['tags'].split(' ')
 
-    @lazy_property
+    @ahto_lib.lazy_property
     def url(self):
         return "http://hypnohub.net/post/show/" + self.id + "/"
 
@@ -163,7 +152,7 @@ class HypnohubPost(object):
 
         return True
 
-    @lazy_property
+    @ahto_lib.lazy_property
     def deleted(self):
         return 'file_url' not in self.element_tree.attrib
 
