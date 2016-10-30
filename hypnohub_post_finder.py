@@ -6,67 +6,10 @@ import sys
 from pprint import pprint
 import xml.etree.ElementTree as ElementTree
 
+import post_rater
+
 DELAY_BETWEEN_REQUESTS = 1 # seconds
 DEFAULT_POSTS_TO_GET = 50
-BASE_RATING = 80
-
-TAG_RATINGS = {
-    'death':                    -230,
-    'alvin_and_the_chipmunks':  -230,
-    'nightmare_fuel':           -230,
-    'ed_edd_n_eddy':            -200,
-    'dolores_umbridge':         -220,
-    'scat':                     -200,
-    'weight_gain':              -200,
-
-    'fart':                   -180,
-    'the_simpsons':           -180,
-    'jiminy_cricket':         -170,
-    'fisting':                -160,
-    'lilo_and_stich':         -160,
-    'human_pet':              -150,
-    'robotization':           -150,
-    'daria_(series)':         -150,
-    'ghost_clown':            -150,
-    'animal_transformation':  -140,
-    'american_dad':           -140,
-    'johnny_test_(series)':   -140,
-    'family_guy':             -140,
-    'fisting':                -120,
-    'huge_nipples':           -120,
-    'huge_lips':              -130,
-    'breast_expansion':       -115,
-    'large_lips':             -115,
-    'bimbofication':          -110,
-    'fat':                    -110,
-    'petrification':          -110,
-    'futurama':               -110,
-
-    'huge_cock':              -90,
-    'kaa':                    -80,
-    'furry':                  -60,
-    'transformation':         -60,
-    '3d':                     -60,
-    'my_little_pony':         -60,
-    'corruption':             -60,
-    'standing_at_attention':  -60,
-    'dollification':          -50,
-    'manip':                  -40,
-    'snake':                  -40,
-    'zombie_walk':            -40,
-    'robot':                  -40,
-    'pregnant':               -40,
-    'feet':                   -20,
-
-    'unaware':         20,
-    'orgasm':          30,
-    'femdom':          40,
-    'orgasm_command':  60,
-    'malesub':         60,
-    'orgasm_denial':   80,
-    'urination':       100,
-    'humiliation':     100,
-}
 
 def usage():
     print("Usage: {sys.argv[0]} <posts to get>".format(**locals()))
@@ -165,9 +108,6 @@ def get_posts(limit, tags=None):
 
     return posts
 
-# post.attrib = {'id':'1336', ...}
-# post.attrib['id'] = 1337
-
 def lazy_property(fn):
     attr_name = '_lazy_' + fn.__name__
 
@@ -227,29 +167,6 @@ class HypnohubPost(object):
     def deleted(self):
         return 'file_url' not in self.element_tree.attrib
 
-    def overall_rating(self, tag_ratings=TAG_RATINGS, base_rating=None):
-        """Takes a dictionary of tags with ratings and a base rating.
-
-        Example tag_ratings:
-        {
-            "scat": -150,
-            "fart": -20,
-            "unaware": 30
-        }
-        """
-        if base_rating is None:
-            rating = BASE_RATING
-        else:
-            rating = base_rating
-
-        rating += int(self.score)
-
-        for tag in self.tags:
-            if tag in tag_ratings:
-                rating += tag_ratings[tag]
-
-        return rating
-
 #def post_filter(post):
 #    blacklist = ['death', 'scat', 'fart', 'animals_only', 'dolores_umbridge',
 #        'alvin_and_the_chipmunks', 'vore', 'the_simpsons',
@@ -264,9 +181,6 @@ class HypnohubPost(object):
 #        and post.score >= 20
 #        and not post.deleted
 #    )
-
-def post_filter(post):
-    return post.overall_rating(TAG_RATINGS) > 0
 
 def posts_to_html_file(filename, posts):
     with open(filename, 'w') as file_:
@@ -285,47 +199,47 @@ def posts_to_html_file(filename, posts):
 
         file_.write(html_end)
 
+if __name__ == '__main__':
+    try:
+        start_id = int(open('start_id.txt', 'r').read())
+        print("start_id.txt ->", start_id)
+    except IOError:
+        open('start_id.txt', 'w').write('0')
+        start_id = 0
+        print("No start_id.txt. Created as 0.")
 
-try:
-    start_id = int(open('start_id.txt', 'r').read())
-    print("start_id.txt ->", start_id)
-except IOError:
-    open('start_id.txt', 'w').write('0')
-    start_id = 0
-    print("No start_id.txt. Created as 0.")
+    tags = "order:id id:>={start_id}".format(**locals())
 
-tags = "order:id id:>={start_id}".format(**locals())
+    try:
+        posts = get_posts(int(sys.argv[1]), tags)
+    except ValueError:
+        usage()
+        exit(1)
+    except IndexError:
+        posts = get_posts(DEFAULT_POSTS_TO_GET, tags)
 
-try:
-    posts = get_posts(int(sys.argv[1]), tags)
-except ValueError:
-    usage()
-    exit(1)
-except IndexError:
-    posts = get_posts(DEFAULT_POSTS_TO_GET, tags)
+    print("Posts: " + str(len(posts)), end=' ')
+    good_posts = list(filter(post_rater.post_filter, posts))
+    print(" reduced to: " + str(len(good_posts)))
 
-print("Posts: " + str(len(posts)), end=' ')
-good_posts = list(filter(post_filter, posts))
-print(" reduced to: " + str(len(good_posts)))
+    posts_to_html_file('urls.html', good_posts)
+    webbrowser.open('file://{cwd}/urls.html'.format(cwd=os.getcwd()))
 
-posts_to_html_file('urls.html', good_posts)
-webbrowser.open('file://{cwd}/urls.html'.format(cwd=os.getcwd()))
+    # Prettiest code of all time. Beautiful.
+    invert_func = lambda func: lambda *args, **kwargs: not func(*args, **kwargs)
+    posts_to_html_file('filtered_urls.html', list(filter(invert_func(post_rater.post_filter), posts)))
+    webbrowser.open('file://{cwd}/filtered_urls.html'.format(cwd=os.getcwd()))
 
-# Prettiest code of all time. Beautiful.
-invert_func = lambda func: lambda *args, **kwargs: not func(*args, **kwargs)
-posts_to_html_file('filtered_urls.html', list(filter(invert_func(post_filter), posts)))
-webbrowser.open('file://{cwd}/filtered_urls.html'.format(cwd=os.getcwd()))
+    next_post_id = str(int(posts[-1].id) + 1)
 
-next_post_id = str(int(posts[-1].id) + 1)
+    response = input(
+        ('Highest post id should be {}. '
+        'Write that+1 ({}) to start_id.txt? [Yn]').format(
+            posts[-1].id, next_post_id)
+    )
 
-response = input(
-    ('Highest post id should be {}. '
-    'Write that+1 ({}) to start_id.txt? [Yn]').format(
-        posts[-1].id, next_post_id)
-)
-
-if response.lower() != 'n':
-    open('start_id.txt', 'w').write(next_post_id)
-    print('Written.')
-else:
-    print('Not written.')
+    if response.lower() != 'n':
+        open('start_id.txt', 'w').write(next_post_id)
+        print('Written.')
+    else:
+        print('Not written.')
