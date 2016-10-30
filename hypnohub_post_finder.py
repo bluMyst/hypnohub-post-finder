@@ -69,7 +69,7 @@ TAG_RATINGS = {
 }
 
 def usage():
-    print "Usage: {sys.argv[0]} <posts to get>".format(**locals())
+    print("Usage: {sys.argv[0]} <posts to get>".format(**locals()))
 
 def get_post_index(limit, tags=None):
     params = {'tags':tags} if tags else {}
@@ -81,16 +81,16 @@ def get_post_index(limit, tags=None):
     else:
         limits_per_page = [limit]
 
-    print "limit of {limit} -> ".format(**locals()),
+    print("limit of {limit} -> ".format(**locals()), end=' ')
     pprint(limits_per_page)
-    print
+    print()
 
     for page, limit in enumerate(limits_per_page):
         params['page'], params['limit'] = page+1, limit
         r = requests.get("http://hypnohub.net/post/index.xml", params=params)
         yield r
         #print "\rGot post {}/{}".format(page+1, len(limits_per_page)),
-        print "Got url: {r.url}".format(**locals())
+        print("Got url: {r.url}".format(**locals()))
         time.sleep(DELAY_BETWEEN_REQUESTS)
 
 # get_post_index response XML looks like this:
@@ -161,7 +161,7 @@ def get_posts(limit, tags=None):
 
             et = ElementTree.fromstring(http_response.content, parser=parser)
 
-        posts += map(HypnohubPost, et.iter('post'))
+        posts += list(map(HypnohubPost, et.iter('post')))
 
     return posts
 
@@ -288,11 +288,11 @@ def posts_to_html_file(filename, posts):
 
 try:
     start_id = int(open('start_id.txt', 'r').read())
-    print "start_id.txt ->", start_id
+    print("start_id.txt ->", start_id)
 except IOError:
     open('start_id.txt', 'w').write('0')
     start_id = 0
-    print "No start_id.txt. Created as 0."
+    print("No start_id.txt. Created as 0.")
 
 tags = "order:id id:>={start_id}".format(**locals())
 
@@ -304,21 +304,21 @@ except ValueError:
 except IndexError:
     posts = get_posts(DEFAULT_POSTS_TO_GET, tags)
 
-print "Posts: " + str(len(posts)),
-good_posts = filter(post_filter, posts)
-print " reduced to: " + str(len(good_posts))
+print("Posts: " + str(len(posts)), end=' ')
+good_posts = list(filter(post_filter, posts))
+print(" reduced to: " + str(len(good_posts)))
 
 posts_to_html_file('urls.html', good_posts)
 webbrowser.open('file://{cwd}/urls.html'.format(cwd=os.getcwd()))
 
 # Prettiest code of all time. Beautiful.
 invert_func = lambda func: lambda *args, **kwargs: not func(*args, **kwargs)
-posts_to_html_file('filtered_urls.html', filter(invert_func(post_filter), posts))
+posts_to_html_file('filtered_urls.html', list(filter(invert_func(post_filter), posts)))
 webbrowser.open('file://{cwd}/filtered_urls.html'.format(cwd=os.getcwd()))
 
 next_post_id = str(int(posts[-1].id) + 1)
 
-response = raw_input(
+response = input(
     ('Highest post id should be {}. '
     'Write that+1 ({}) to start_id.txt? [Yn]').format(
         posts[-1].id, next_post_id)
@@ -326,6 +326,6 @@ response = raw_input(
 
 if response.lower() != 'n':
     open('start_id.txt', 'w').write(next_post_id)
-    print 'Written.'
+    print('Written.')
 else:
-    print 'Not written.'
+    print('Not written.')
