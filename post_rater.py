@@ -1,4 +1,4 @@
-BASE_RATING = 80
+BASE_RATING = 60
 
 TAG_RATINGS = {
     'death':                    -230,
@@ -9,48 +9,80 @@ TAG_RATINGS = {
     'scat':                     -200,
     'weight_gain':              -200,
 
-    'fart':                   -180,
-    'the_simpsons':           -180,
-    'jiminy_cricket':         -170,
-    'fisting':                -160,
-    'lilo_and_stich':         -160,
-    'human_pet':              -150,
-    'robotization':           -150,
-    'daria_(series)':         -150,
-    'ghost_clown':            -150,
-    'animal_transformation':  -140,
-    'american_dad':           -140,
-    'johnny_test_(series)':   -140,
-    'family_guy':             -140,
-    'fisting':                -120,
-    'huge_nipples':           -120,
-    'huge_lips':              -130,
-    'breast_expansion':       -115,
-    'large_lips':             -115,
-    'bimbofication':          -110,
-    'fat':                    -110,
-    'petrification':          -110,
-    'futurama':               -110,
+    'the_simpsons':                    -180,
+    'spongebob_squarepants_(series)':  -180,
+    'jiminy_cricket':                  -170,
+    'fisting':                         -160,
+    'lilo_and_stich':                  -160,
+    'robotization':                    -150,
+    'daria_(series)':                  -150,
+    'ghost_clown':                     -150,
+    'animal_transformation':           -140,
+    'american_dad':                    -140,
+    'johnny_test_(series)':            -140,
+    'family_guy':                      -140,
+    'fisting':                         -120,
+    'huge_nipples':                    -120,
+    'fart':                            -120,
+    'breast_expansion':                -115,
+    'large_lips':                      -115,
+    'bimbofication':                   -110,
+    'fat':                             -110,
+    'petrification':                   -110,
+    'futurama':                        -110,
 
-    'huge_cock':              -90,
-    'kaa':                    -80,
-    'furry':                  -60,
-    'transformation':         -60,
-    '3d':                     -60,
-    'my_little_pony':         -60,
-    'corruption':             -60,
-    'standing_at_attention':  -60,
-    'dollification':          -50,
-    'manip':                  -40,
-    'snake':                  -40,
-    'zombie_walk':            -40,
-    'robot':                  -40,
-    'pregnant':               -40,
-    'feet':                   -20,
+    'huge_lips':                    -70,
+    'huge_breasts':                 -70,
+    'huge_cock':                    -70,
+    'memetic_control':              -70,
+    'furry':                        -60,
+    'zombie_walk':                  -60,
+    'kim_possible_(series)':        -60,
+    'human_pet':                    -60,
+    'pet_play':                     -60,
+    'transformation':               -60,
+    '3d':                           -60,
+    'my_little_pony':               -60,
+    'corruption':                   -60,
+    'singing':                      -60,
+    'standing_at_attention':        -60,
+    'slade':                        -60,
+    'before_and_after':             -60,
+    'bodysuit':                     -50,
+    'dollification':                -50,
+    'sonic_the_hedgehog_(series)':  -50,
+    'mad_scientist':                -50,
+    'pokemon':                      -50,
+    'tickling':                     -50,
+    'manip':                        -40,
+    'robot':                        -40,
+    'pregnant':                     -40,
+    'super_hero':                   -40,
+    'vivian':                       -40,
+    'x-naut':                       -40,
+    'latex':                        -40,
+    'dancing':                      -40,
+    'hypnotic_tentacle':            -40,
 
+    # Kaa is so low because Kaa is a snake, so
+    # Kaa will also always have the snake tag.
+    'kaa':    -40,
+    'snake':  -40,
+
+    'spanking':   -30,
+    'maledom':    -20,
+    'feet':       -20,
+    'tentacles':  -20,
+    'kaa_eyes':   -20,
+    'drool':      -10,
+    'pendulum':   -10,
+    'spiral':     -10,
+
+    'femdom':          20,
+    'trigger':         20,
     'unaware':         20,
     'orgasm':          30,
-    'femdom':          40,
+    'crotch_rub':      40,
     'orgasm_command':  60,
     'malesub':         60,
     'orgasm_denial':   80,
@@ -61,12 +93,18 @@ TAG_RATINGS = {
 
 TAG_RATINGS = {k.lower(): v for k, v in TAG_RATINGS.items()}
 
+def score_factor(score):
+    return (score - 10) / 2
+
 def rate_post(post):
-    rating = BASE_RATING + int(post.score)
+    rating = BASE_RATING
+    rating += score_factor(int(post.score))
 
     for tag in post.tags:
         if tag.lower() in TAG_RATINGS:
             rating += TAG_RATINGS[tag]
 
+    return rating
+
 def post_filter(post):
-    return rate_hypnohub_post(post) > 0
+    return rate_post(post) > 0

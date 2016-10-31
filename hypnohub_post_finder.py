@@ -5,6 +5,7 @@ import os
 import sys
 from pprint import pprint
 import xml.etree.ElementTree as ElementTree
+import itertools
 
 import ahto_lib
 import post_rater
@@ -12,32 +13,14 @@ import post_rater
 DELAY_BETWEEN_REQUESTS = 1 # seconds
 DEFAULT_POSTS_TO_GET = 50
 
+# I don't remember exactly how this works, but I think hypnohub will only let
+# you get so many images per request.
+LIMIT_PER_PAGE = 100
+
 def usage():
     print("Usage: {sys.argv[0]} <posts to get>".format(**locals()))
 
-def get_post_index(limit, tags=None):
-    params = {'tags':tags} if tags else {}
-
-    if limit >= 100:
-        limits_per_page = ( [100]*(limit/100) ) # integer division rounds down
-
-        if limit%100: limits_per_page += [limit%100]
-    else:
-        limits_per_page = [limit]
-
-    print("limit of {limit} -> ".format(**locals()), end=' ')
-    pprint(limits_per_page)
-    print()
-
-    for page, limit in enumerate(limits_per_page):
-        params['page'], params['limit'] = page+1, limit
-        r = requests.get("http://hypnohub.net/post/index.xml", params=params)
-        yield r
-        #print "\rGot post {}/{}".format(page+1, len(limits_per_page)),
-        print("Got url: {r.url}".format(**locals()))
-        time.sleep(DELAY_BETWEEN_REQUESTS)
-
-# get_post_index response XML looks like this:
+# response XML looks like this:
 # <posts count="1337" offset="# posts skipped by page">
 #   <post
 #     id="1337"
@@ -59,13 +42,35 @@ def get_post_index(limit, tags=None):
 #   <post baz qux>
 # </posts>
 
-def get_posts(limit, tags=None):
-    posts = []
+class HypnohubPostGetter(object):
+    """Gets HypnohubPost's. Works like an iterator.
 
-    for http_response in get_post_index(limit, tags):
-        #et = ElementTree.fromstring(http_response.text)
+    It'll get them in chunks of limit_per_page at a time.
+    """
+    def __init__(self, limit_per_page=LIMIT_PER_PAGE, tags="", starting_index=0):
+        self.limit_per_page = limit_per_page
+        self.tags = tags + " order:id id:>=" + str(starting_index)
+        self.starting_index = starting_index
+
+        self.current_page = 1
+        self.posts = []
+        self.highest_id = -1
+
+    def __iter__(self):
+        return self
+
+    def get_next_batch(self):
+        params = {
+            'page': self.current_page,
+            'limit': self.limit_per_page}
+
+        if self.tags:
+            params['tags'] = self.tags
+
+        xml = requests.get("http://hypnohub.net/post/index.xml", params=params)
+
         try:
-            et = ElementTree.fromstring(http_response.content)
+            et = ElementTree.fromstring(xml.content)
         except ElementTree.ParseError:
             # This probably means there's an invalid entity, like &euro;, that
             # isn't handled by the default parser.
@@ -78,36 +83,67 @@ def get_posts(limit, tags=None):
             #
             # It looks like you can replace entities with entire strings, not
             # just single characters. So that's pretty cool.
-            entity_replacements = [
+
+            # TODO: Create a class that can take any arbitrary entity.
+            entity_replacements = {
                 # Standard entities, just in case we need them.
-                ('gt', '>'),
-                ('lt', '<'),
-                ('nbsp', ' '), # TODO: not a non-breaking space
-                ('amp', '&'),
+                'gt':    '>',
+                'lt':    '<',
+                'nbsp':  ' ',
+                'amp':   '&',
 
                 # A few of the weird entities that aren't normally supported.
-                ('atilde', '[atilde]'),
-                ('bull', '[bull]'),
-                ('euro', '[euro]'),
-                ('fnof', '[fnof]'),
-                ('sbquo', '[sbquo]'),
-                ('sect', '[sect]'),
-                ('sup1', '[sup1]'),
-                ('sup3', '[sup3]'),
-                ('yen', '[yen]')
-            ]
+                'atilde':  '[atilde]',
+                'bull':    '[bull]',
+                'euro':    '[euro]',
+                'fnof':    '[fnof]',
+                'sbquo':   '[sbquo]',
+                'sect':    '[sect]',
+                'sup1':    '[sup1]',
+                'sup3':    '[sup3]',
+                'yen':     '[yen]'
+            }
 
             parser = ElementTree.XMLParser()
             parser._parser.UseForeignDTD(True)
+            parser.entity.update(entity_replacements)
 
-            for k, v in entity_replacements:
-                parser.entity[k] = v
+            et = ElementTree.fromstring(xml.content, parser=parser)
 
-            et = ElementTree.fromstring(http_response.content, parser=parser)
+        self.posts += [HypnohubPost(post) for post in et.iter('post')]
+        self.posts =  [i for i in self.posts if not i.deleted]
+        self.current_page += 1
 
-        posts += list(map(HypnohubPost, et.iter('post')))
+        for i in self.posts:
+            if int(i.id) > self.highest_id:
+                self.highest_id = int(i.id)
 
-    return posts
+        time.sleep(DELAY_BETWEEN_REQUESTS)
+
+    def __next__(self):
+        if len(self.posts) > 0:
+            return self.posts.pop()
+
+        self.get_next_batch()
+
+        if len(self.posts) > 0:
+            return self.__next__()
+        else:
+            raise StopIteration
+
+    def get_n_good_posts(self, n, criteria_function=post_rater.post_filter):
+        """ returns (good_posts, bad_posts) """
+        good_posts = []
+        bad_posts  = []
+        for post in self:
+            if criteria_function(post):
+                good_posts.append(post)
+            else:
+                bad_posts.append(post)
+
+            if len(good_posts) >= posts_to_get:
+                return good_posts, bad_posts
+
 
 class HypnohubPost(object):
     # Used by overall_rating
@@ -116,15 +152,17 @@ class HypnohubPost(object):
 
     def __getattr__(self, name):
         # only called for invalid attr
-        return self.element_tree.attrib[name]
+        try:
+            return self.element_tree.attrib[name]
+        except KeyError:
+            raise AttributeError(name)
 
     def __repr__(self):
         return ("<HypnohubPost #{self.id}>").format(**locals())
 
     def __str__(self):
-        rating = self.overall_rating()
-        return ("Post#{self.id} self-rated {rating} others-rated {self.score}"
-            " by {self.author}").format(**locals())
+        return ("Post#{self.id} rated {self.score} by {self.author}").format(
+            **locals())
 
     __getitem__ = __getattr__
 
@@ -156,21 +194,6 @@ class HypnohubPost(object):
     def deleted(self):
         return 'file_url' not in self.element_tree.attrib
 
-#def post_filter(post):
-#    blacklist = ['death', 'scat', 'fart', 'animals_only', 'dolores_umbridge',
-#        'alvin_and_the_chipmunks', 'vore', 'the_simpsons',
-#        'animal_transformation', 'lilo_and_stich', 'kaa', 'jiminy_cricket',
-#        'weight_gain', 'huge_nipples', 'huge_lips', 'large_lips',
-#        'daria_(series)', 'fat', 'nightmare_fuel', 'vore', 'petrification',
-#        'bimbofication', 'breast_expansion', 'fisting', 'pregnant', 'human_pet',
-#        'ghost_clown', 'ed_edd_n_eddy', 'robotization', 'chaoscroc']
-#
-#    return (
-#        not post.has_any(blacklist)
-#        and post.score >= 20
-#        and not post.deleted
-#    )
-
 def posts_to_html_file(filename, posts):
     with open(filename, 'w') as file_:
         html_start = "<html><body>\n"
@@ -180,13 +203,33 @@ def posts_to_html_file(filename, posts):
 
         for post in posts:
             post_string = str(post).replace('<', '&lt;').replace('>', '&gt;')
-            post_html = "<a href='{post.url}'>{post_string}<br/>"
-            post_html += "<img src='{post.preview_url}'/>".format(**locals())
-            post_html += "</a><br/><br/>\n"
-            post_html = post_html.format(**locals())
-            file_.write(post_html)
+            rating = post_rater.rate_post(post)
+
+            file_.write("<a href='{post.url}'>{rating}:"
+                " {post_string}<br/>\n".format(**locals()))
+
+            file_.write("<img src='{post.preview_url}'/>\n".format(**locals()))
+            file_.write("</a><br/>\n")
+
+            # Detailed rating info.
+            for tag in post.tags:
+                if tag in post_rater.TAG_RATINGS:
+                    tag_rating = post_rater.TAG_RATINGS[tag]
+                    file_.write(str(tag_rating) + ": " + tag + "<br/>\n")
+
+            file_.write(str(post_rater.score_factor(int(post.score)))
+                + ' score factor<br/>\n')
+
+            file_.write(str(rating))
+
+            file_.write("<br/><br/>\n")
 
         file_.write(html_end)
+
+def posts_to_browser(filename, posts):
+    posts_to_html_file(filename, posts)
+    webbrowser.open('file://{cwd}/{filename}'.format(
+        cwd=os.getcwd(), filename=filename))
 
 if __name__ == '__main__':
     try:
@@ -197,37 +240,29 @@ if __name__ == '__main__':
         start_id = 0
         print("No start_id.txt. Created as 0.")
 
-    tags = "order:id id:>={start_id}".format(**locals())
-
     try:
-        posts = get_posts(int(sys.argv[1]), tags)
+        posts_to_get = int(sys.argv[1])
+    except IndexError:
+        posts_to_get = DEFAULT_POSTS_TO_GET
     except ValueError:
         usage()
         exit(1)
-    except IndexError:
-        posts = get_posts(DEFAULT_POSTS_TO_GET, tags)
 
-    print("Posts: " + str(len(posts)), end=' ')
-    good_posts = list(filter(post_rater.post_filter, posts))
-    print(" reduced to: " + str(len(good_posts)))
+    post_getter = HypnohubPostGetter(starting_index=start_id)
+    good_posts, bad_posts = post_getter.get_n_good_posts(posts_to_get)
 
-    posts_to_html_file('urls.html', good_posts)
-    webbrowser.open('file://{cwd}/urls.html'.format(cwd=os.getcwd()))
+    print(len(good_posts) + len(bad_posts), "posts reduced to:", len(good_posts))
 
-    # Prettiest code of all time. Beautiful.
-    invert_func = lambda func: lambda *args, **kwargs: not func(*args, **kwargs)
-    posts_to_html_file('filtered_urls.html', list(filter(invert_func(post_rater.post_filter), posts)))
-    webbrowser.open('file://{cwd}/filtered_urls.html'.format(cwd=os.getcwd()))
+    posts_to_browser('good_posts.html', good_posts)
+    posts_to_browser('bad_posts.html', bad_posts)
 
-    next_post_id = str(int(posts[-1].id) + 1)
+    next_post_id = str(post_getter.highest_id + 1)
 
-    response = input(
-        ('Highest post id should be {}. '
-        'Write that+1 ({}) to start_id.txt? [Yn]').format(
-            posts[-1].id, next_post_id)
-    )
+    response = ahto_lib.yes_no(True, 'Highest post id should be {}. Write'
+        ' that+1 ({}) to start_id.txt?'.format(
+            post_getter.highest_id, next_post_id))
 
-    if response.lower() != 'n':
+    if response:
         open('start_id.txt', 'w').write(next_post_id)
         print('Written.')
     else:
