@@ -1,0 +1,10 @@
+# Script-generated files:
+bad_posts.html
+good_posts.html
+
+# Python stuff.
+*.pyc
+__pycache__
+
+# Vim's swap files:
+*.swp
