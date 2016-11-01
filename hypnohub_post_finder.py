@@ -4,14 +4,14 @@ import webbrowser
 import os
 import sys
 from pprint import pprint
-import xml.etree.ElementTree as ElementTree
+import bs4
 import itertools
 
 import ahto_lib
 import post_rater
 
-DELAY_BETWEEN_REQUESTS = 1 # seconds
-DEFAULT_POSTS_TO_GET = 50
+DELAY_BETWEEN_REQUESTS =  1 # seconds
+DEFAULT_POSTS_TO_GET   = 50
 
 # I don't remember exactly how this works, but I think hypnohub will only let
 # you get so many images per request.
@@ -68,55 +68,19 @@ class HypnohubPostGetter(object):
             params['tags'] = self.tags
 
         xml = requests.get("http://hypnohub.net/post/index.xml", params=params)
+        # lxml won't install on my system so I have to use an html parser on
+        # xml. Trust me; it's better than the hack I was using before.
+        soup = bs4.BeautifulSoup(xml, 'html.parser')
 
-        try:
-            et = ElementTree.fromstring(xml.content)
-        except ElementTree.ParseError:
-            # This probably means there's an invalid entity, like &euro;, that
-            # isn't handled by the default parser.
-            #
-            # By default, the parser knows about &lt;, &gt;, etc. But we need
-            # tell it how to handle more exotic stuff like &atilde; or &fnof;.
-            # This is normally done in a DTD, but I can't figure out if
-            # HypnoHub has an external DTD, and there isn't any DTD information
-            # in the XML that it sends.
-            #
-            # It looks like you can replace entities with entire strings, not
-            # just single characters. So that's pretty cool.
+        for post in soup.find_all('post'):
+            post = HypnohubPost(post)
 
-            # TODO: Create a class that can take any arbitrary entity.
-            entity_replacements = {
-                # Standard entities, just in case we need them.
-                'gt':    '>',
-                'lt':    '<',
-                'nbsp':  ' ',
-                'amp':   '&',
+            if not post.deleted:
+                self.posts.append(post)
 
-                # A few of the weird entities that aren't normally supported.
-                'atilde':  '[atilde]',
-                'bull':    '[bull]',
-                'euro':    '[euro]',
-                'fnof':    '[fnof]',
-                'sbquo':   '[sbquo]',
-                'sect':    '[sect]',
-                'sup1':    '[sup1]',
-                'sup3':    '[sup3]',
-                'yen':     '[yen]'
-            }
+            self.highest_id = max(self.highest_id, post.id)
 
-            parser = ElementTree.XMLParser()
-            parser._parser.UseForeignDTD(True)
-            parser.entity.update(entity_replacements)
-
-            et = ElementTree.fromstring(xml.content, parser=parser)
-
-        self.posts += [HypnohubPost(post) for post in et.iter('post')]
-        self.posts =  [i for i in self.posts if not i.deleted]
         self.current_page += 1
-
-        for i in self.posts:
-            if int(i.id) > self.highest_id:
-                self.highest_id = int(i.id)
 
         time.sleep(DELAY_BETWEEN_REQUESTS)
 
@@ -144,18 +108,18 @@ class HypnohubPostGetter(object):
             if len(good_posts) >= posts_to_get:
                 return good_posts, bad_posts
 
-
 class HypnohubPost(object):
-    # Used by overall_rating
-    def __init__(self, element_tree):
-        self.element_tree = element_tree
+    def __init__(self, post_soup):
+        self.post_soup = post_soup
 
     def __getattr__(self, name):
         # only called for invalid attr
         try:
-            return self.element_tree.attrib[name]
+            return self.post_soup[name]
         except KeyError:
             raise AttributeError(name)
+
+    __getitem__ = __getattr__
 
     def __repr__(self):
         return ("<HypnohubPost #{self.id}>").format(**locals())
@@ -164,11 +128,9 @@ class HypnohubPost(object):
         return ("Post#{self.id} rated {self.score} by {self.author}").format(
             **locals())
 
-    __getitem__ = __getattr__
-
     @ahto_lib.lazy_property
     def tags(self):
-        return self.element_tree.attrib['tags'].split(' ')
+        return self['tags'].split(' ')
 
     @ahto_lib.lazy_property
     def url(self):
@@ -192,7 +154,7 @@ class HypnohubPost(object):
 
     @ahto_lib.lazy_property
     def deleted(self):
-        return 'file_url' not in self.element_tree.attrib
+        return 'file_url' not in self.post_soup.attrib
 
 def posts_to_html_file(filename, posts):
     with open(filename, 'w') as file_:
