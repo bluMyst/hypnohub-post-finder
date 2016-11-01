@@ -79,9 +79,9 @@ TAG_RATINGS = {
     'spiral':     -10,
 
     'femdom':          20,
-    'trigger':         20,
     'unaware':         20,
     'orgasm':          30,
+    'trigger':         30,
     'crotch_rub':      40,
     'orgasm_command':  60,
     'malesub':         60,
@@ -98,7 +98,7 @@ def score_factor(score):
 
 def rate_post(post):
     rating = BASE_RATING
-    rating += score_factor(int(post.score))
+    rating += score_factor(post.score)
 
     for tag in post.tags:
         if tag.lower() in TAG_RATINGS:

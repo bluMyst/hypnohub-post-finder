@@ -134,23 +134,21 @@ class HypnohubPost(object):
 
     @ahto_lib.lazy_property
     def url(self):
-        return "http://hypnohub.net/post/show/" + self.id + "/"
+        return "http://hypnohub.net/post/show/" + str(self.id) + "/"
+
+    @ahto_lib.lazy_property
+    def id(self):
+        return int(self['id'])
+
+    @ahto_lib.lazy_property
+    def score(self):
+        return int(self['score'])
 
     def has_any(self, tags):
-        #return any(tag in self.tags for tag in tags)
-        for tag in tags:
-            if tag in self.tags:
-                return True
-
-        return False
+        return any(tag in self.tags for tag in tags)
 
     def has_all(self, tags):
-        #return all(tag in self.tags for tag in tags)
-        for tag in tags:
-            if tag not in self.tags:
-                return False
-
-        return True
+        return all(tag in self.tags for tag in tags)
 
     @ahto_lib.lazy_property
     def deleted(self):
@@ -179,7 +177,7 @@ def posts_to_html_file(filename, posts):
                     tag_rating = post_rater.TAG_RATINGS[tag]
                     file_.write(str(tag_rating) + ": " + tag + "<br/>\n")
 
-            file_.write(str(post_rater.score_factor(int(post.score)))
+            file_.write(str(post_rater.score_factor(post.score)))
                 + ' score factor<br/>\n')
 
             file_.write(str(rating))
