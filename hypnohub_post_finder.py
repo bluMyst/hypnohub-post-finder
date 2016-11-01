@@ -70,7 +70,8 @@ class HypnohubPostGetter(object):
         xml = requests.get("http://hypnohub.net/post/index.xml", params=params)
         # lxml won't install on my system so I have to use an html parser on
         # xml. Trust me; it's better than the hack I was using before.
-        soup = bs4.BeautifulSoup(xml, 'html.parser')
+        #soup = bs4.BeautifulSoup(xml, 'html.parser')
+        soup = bs4.BeautifulSoup(xml.text, 'html.parser')
 
         for post in soup.find_all('post'):
             post = HypnohubPost(post)
@@ -78,24 +79,22 @@ class HypnohubPostGetter(object):
             if not post.deleted:
                 self.posts.append(post)
 
-            self.highest_id = max(self.highest_id, post.id)
-
         self.current_page += 1
 
         time.sleep(DELAY_BETWEEN_REQUESTS)
 
     def __next__(self):
-        if len(self.posts) > 0:
-            return self.posts.pop()
+        for _ in range(0, 25):
+            if len(self.posts) > 0:
+                next_post, self.posts = self.posts[0], self.posts[1:]
+                self.highest_id = max(self.highest_id, next_post.id)
+                return next_post
 
-        self.get_next_batch()
+            self.get_next_batch()
 
-        if len(self.posts) > 0:
-            return self.__next__()
-        else:
-            raise StopIteration
+        raise StopIteration
 
-    def get_n_good_posts(self, n, criteria_function=post_rater.post_filter):
+    def get_n_good_posts(self, n, criteria_function=post_rater.post_filter, sort=True):
         """ returns (good_posts, bad_posts) """
         good_posts = []
         bad_posts  = []
@@ -106,7 +105,12 @@ class HypnohubPostGetter(object):
                 bad_posts.append(post)
 
             if len(good_posts) >= posts_to_get:
-                return good_posts, bad_posts
+                break
+
+        good_posts.sort(key=post_rater.rate_post, reverse=True)
+        bad_posts.sort( key=post_rater.rate_post, reverse=True)
+
+        return good_posts, bad_posts
 
 class HypnohubPost(object):
     def __init__(self, post_soup):
@@ -152,7 +156,13 @@ class HypnohubPost(object):
 
     @ahto_lib.lazy_property
     def deleted(self):
-        return 'file_url' not in self.post_soup.attrib
+        try:
+            self.post_soup['file_url']
+        except KeyError:
+            return True
+        else:
+            return False
+        #return 'file_url' not in self.post_soup
 
 def posts_to_html_file(filename, posts):
     with open(filename, 'w') as file_:
@@ -177,7 +187,7 @@ def posts_to_html_file(filename, posts):
                     tag_rating = post_rater.TAG_RATINGS[tag]
                     file_.write(str(tag_rating) + ": " + tag + "<br/>\n")
 
-            file_.write(str(post_rater.score_factor(post.score)))
+            file_.write(str( post_rater.score_factor(post.score) )
                 + ' score factor<br/>\n')
 
             file_.write(str(rating))
