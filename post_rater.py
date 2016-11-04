@@ -1,4 +1,4 @@
-BASE_RATING = 60
+BASE_RATING = 50
 
 TAG_RATINGS = {
     'death':                    -230,
@@ -104,7 +104,20 @@ TAG_RATINGS = {
 TAG_RATINGS = {k.lower(): v for k, v in TAG_RATINGS.items()}
 
 def score_factor(score):
-    return (score - 10) / 2
+    # This was really tricky to write. Extremely high scores shouldn't drown out
+    # my tags, but extremely low scores should count for something, too.
+
+    if score <= -1:
+        # Can this even happen?
+        return -10
+    elif 0 <= score <= 10:
+        return score - 10
+    elif 11 <= score <= 30:
+        return score
+    elif 31 <= score <= 400:
+        return 20 + score/10
+    elif 401 <= score:
+        return 60
 
 def rate_post(post):
     rating = BASE_RATING
