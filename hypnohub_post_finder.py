@@ -166,35 +166,34 @@ class HypnohubPost(object):
 
 def posts_to_html_file(filename, posts):
     with open(filename, 'w') as file_:
-        html_start = "<html><body>\n"
-        html_end = "</body></html>\n"
-
-        file_.write(html_start)
+        file_.write("<html><body>\n")
 
         for post in posts:
             post_string = str(post).replace('<', '&lt;').replace('>', '&gt;')
             rating = post_rater.rate_post(post)
+            score_factor = post_rater.score_factor(post.score)
 
-            file_.write("<a href='{post.url}'>{rating}:"
-                " {post_string}<br/>\n".format(**locals()))
-
-            file_.write("<img src='{post.preview_url}'/>\n".format(**locals()))
-            file_.write("</a><br/>\n")
+            file_.write((
+                "<a href='{post.url}'>\n"
+                "    {rating}: {post_string}<br/>\n"
+                "    <img src='{post.preview_url}'/><br/>\n"
+                "</a>\n"
+            ).format(**locals()))
 
             # Detailed rating info.
             for tag in post.tags:
                 if tag in post_rater.TAG_RATINGS:
                     tag_rating = post_rater.TAG_RATINGS[tag]
-                    file_.write(str(tag_rating) + ": " + tag + "<br/>\n")
+                    file_.write("{tag_rating}: {tag}<br/>\n".format(**locals()))
 
-            file_.write(str( post_rater.score_factor(post.score) )
-                + ' score factor<br/>\n')
+            file_.write((
+                'score_factor({post.score}) -> {score_factor}<br/>\n'
+                '----------------------------<br/>\n'
+                '{rating}<br/>\n'
+                '<br/>\n'
+            ).format(**locals()))
 
-            file_.write(str(rating))
-
-            file_.write("<br/><br/>\n")
-
-        file_.write(html_end)
+        file_.write("</body></html>\n")
 
 def posts_to_browser(filename, posts):
     posts_to_html_file(filename, posts)
