@@ -1,4 +1,4 @@
-BASE_RATING = 30
+BASE_RATING = 10
 
 TAG_RATINGS = {
     'death':                    -230,
@@ -32,9 +32,11 @@ TAG_RATINGS = {
     'futurama':                        -110,
     'phineas_and_ferb':                -100,
 
+    'pee_drinking':                 -70,
     'huge_lips':                    -70,
     'huge_breasts':                 -70,
     'huge_cock':                    -70,
+    'huge_balls':                   -70,
     'memetic_control':              -70,
     'zombie_walk':                  -60,
     'kim_possible_(series)':        -60,
@@ -43,6 +45,7 @@ TAG_RATINGS = {
     'transformation':               -60,
     '3d':                           -60,
     'age_regression':               -60,
+    'diaper':                       -60,
     'my_little_pony':               -60,
     'corruption':                   -60,
     'singing':                      -60,
@@ -89,11 +92,11 @@ TAG_RATINGS = {
     'spiral':         -10,
 
     'femdom':          20,
+    'crotch_rub':      20,
     'unaware':         20,
     'orgasm':          30,
     'trigger':         30,
     'malesub':         30,
-    'crotch_rub':      40,
     'incest':          40,
     'orgasm_command':  60,
     'orgasm_denial':   80,
