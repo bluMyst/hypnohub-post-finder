@@ -1,4 +1,4 @@
-BASE_RATING = 40
+BASE_RATING = 30
 
 TAG_RATINGS = {
     'death':                    -230,
@@ -75,16 +75,18 @@ TAG_RATINGS = {
     'kaa':    -40,
     'snake':  -40,
 
-    'foot_worship':          -30,
-    'spanking':              -30,
-    'male_only':             -30,
-    'maledom':               -20,
-    'feet':                  -20,
-    'tentacles':             -20,
-    'kaa_eyes':              -20,
-    'drool':                 -10,
-    'pendulum':              -10,
-    'spiral':                -10,
+    'foot_worship':   -30,
+    'spanking':       -30,
+    'male_only':      -30,
+    'maledom':        -20,
+    'feet':           -20,
+    'tentacles':      -20,
+    'kaa_eyes':       -20,
+    'multiple_subs':  -20,
+    'anal':           -20,
+    'drool':          -10,
+    'pendulum':       -10,
+    'spiral':         -10,
 
     'femdom':          20,
     'unaware':         20,
