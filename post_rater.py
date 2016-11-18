@@ -44,6 +44,7 @@ TAG_RATINGS = {
     'pet_play':                     -60,
     'transformation':               -60,
     '3d':                           -60,
+    'lactation':                    -60,
     'age_regression':               -60,
     'diaper':                       -60,
     'my_little_pony':               -60,
