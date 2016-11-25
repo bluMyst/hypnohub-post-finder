@@ -72,6 +72,7 @@ TAG_RATINGS = {
     'deathwish_(manipper)':         -40,
     'haigure':                      -40,
     'hypnotized_hypnotist':         -40,
+    'hypnotized_dom':               -40,
     'vore':                         -40,
 
     # Kaa is so low because Kaa is a snake, so
