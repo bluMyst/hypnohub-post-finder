@@ -164,6 +164,12 @@ class HypnohubPost(object):
             return False
         #return 'file_url' not in self.post_soup
 
+    @ahto_lib.lazy_property
+    def preview_url(self):
+        # self.post_soup['preview_url'] example:
+        # '//hypnohub.net//data/preview/2eea10e9b65a2de8e84ab88dcfd90575.jpg'
+        return 'http:' + self.post_soup['preview_url']
+
 def posts_to_html_file(filename, posts):
     with open(filename, 'w') as file_:
         file_.write("<html><body>\n")
