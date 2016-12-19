@@ -104,7 +104,7 @@ class HypnohubPostGetter(object):
             else:
                 bad_posts.append(post)
 
-            if len(good_posts) >= posts_to_get:
+            if len(good_posts) >= n:
                 break
 
         good_posts.sort(key=post_rater.rate_post, reverse=True)
