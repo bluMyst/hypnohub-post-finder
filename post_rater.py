@@ -1,13 +1,14 @@
 BASE_RATING = 10
 
 TAG_RATINGS = {
-    'death':                    -230,
-    'alvin_and_the_chipmunks':  -230,
-    'nightmare_fuel':           -230,
-    'ed_edd_n_eddy':            -200,
-    'dolores_umbridge':         -220,
-    'scat':                     -200,
-    'weight_gain':              -200,
+    'death':                    -430,
+    'alvin_and_the_chipmunks':  -430,
+    'nightmare_fuel':           -430,
+    'ed_edd_n_eddy':            -400,
+    'dolores_umbridge':         -420,
+    'scat':                     -400,
+
+    'weight_gain':  -300,
 
     'the_simpsons':                    -180,
     'spongebob_squarepants_(series)':  -180,
