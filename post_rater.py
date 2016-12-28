@@ -1,4 +1,4 @@
-BASE_RATING = 10
+BASE_RATING = 0
 
 TAG_RATINGS = {
     'death':                    -430,
@@ -119,13 +119,13 @@ def score_factor(score):
         # Can this even happen?
         return -10
     elif 0 <= score <= 10:
-        return score - 10
+        return 0
     elif 11 <= score <= 30:
-        return score
+        return score - 10
     elif 31 <= score <= 400:
-        return 20 + score/10
+        return 10 + score/10
     elif 401 <= score:
-        return 60
+        return 50
 
 def rate_post(post):
     rating = BASE_RATING
