@@ -84,15 +84,21 @@ class HypnohubPostGetter(object):
         time.sleep(DELAY_BETWEEN_REQUESTS)
 
     def __next__(self):
-        for _ in range(0, 25):
-            if len(self.posts) > 0:
-                next_post, self.posts = self.posts[0], self.posts[1:]
-                self.highest_id = max(self.highest_id, next_post.id)
-                return next_post
+        # If we have no locally-stored posts, try 25 times to get new ones. If
+        # none are found, give up and StopIteration.
+        if len(self.posts) == 0:
+            for _ in range(25):
+                self.get_next_batch()
 
-            self.get_next_batch()
+                if len(self.posts) > 0:
+                    break
+            else:
+                raise StopIteration
 
-        raise StopIteration
+        next_post, self.posts = self.posts[0], self.posts[1:]
+        self.highest_id = max(self.highest_id, next_post.id)
+
+        return next_post
 
     def get_n_good_posts(self, n, criteria_function=post_rater.post_filter, sort=True):
         """ returns (good_posts, bad_posts) """
