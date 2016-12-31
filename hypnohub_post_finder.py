@@ -42,15 +42,83 @@ def usage():
 #   <post baz qux>
 # </posts>
 
-class HypnohubPostGetter(object):
-    """Gets HypnohubPost's. Works like an iterator.
-
-    It'll get them in chunks of limit_per_page at a time.
+class HypnohubPost(object):
+    """ Takes a BeautifulSoup of a Hypnohub post's XML data and gives you some
+    convenient methods and properties for getting its info.
     """
+
+    def __init__(self, post_soup):
+        self.post_soup = post_soup
+
+    def __getattr__(self, name):
+        """ Any invalid attribute reads (to stuff we haven't overwritten) get
+        redirected to _post_soup's keys.
+        """
+        try:
+            return self.post_soup[name]
+        except KeyError:
+            raise AttributeError(name)
+
+    __getitem__ = __getattr__
+
+    def __repr__(self):
+        return ("<HypnohubPost #{self.id}>").format(**locals())
+
+    def __str__(self):
+        return ("Post#{self.id} rated {self.score} by {self.author}").format(
+            **locals())
+
+    @ahto_lib.lazy_property
+    def tags(self):
+        return self['tags'].split(' ')
+
+    @ahto_lib.lazy_property
+    def url(self):
+        return "http://hypnohub.net/post/show/" + str(self.id) + "/"
+
+    @ahto_lib.lazy_property
+    def id(self):
+        return int(self['id'])
+
+    @ahto_lib.lazy_property
+    def score(self):
+        return int(self['score'])
+
+    def has_any(self, tags):
+        """ Is tagged with any of the given tags. """
+        return any(tag in self.tags for tag in tags)
+
+    def has_all(self, tags):
+        """ Is tagged with all of the given tags. """
+        return all(tag in self.tags for tag in tags)
+
+    @ahto_lib.lazy_property
+    def deleted(self):
+        try:
+            self.post_soup['file_url']
+        except KeyError:
+            return True
+        else:
+            return False
+        #return 'file_url' not in self.post_soup
+
+    @ahto_lib.lazy_property
+    def preview_url(self):
+        # self._post_soup['preview_url'] is in the form:
+        #
+        # '//hypnohub.net//data/preview/2eea10e9b65a2de8e84ab88dcfd90575.jpg'
+        #
+        # Which is kinda weird and pernicious.
+
+        return 'http:' + self.post_soup['preview_url']
+
+class HypnohubPostGetter(object):
+    """ An iterator for getting HypnohubPost's, starting at a given index. """
+
     def __init__(self, limit_per_page=LIMIT_PER_PAGE, tags="", starting_index=0):
         self.limit_per_page = limit_per_page
-        self.tags = tags + " order:id id:>=" + str(starting_index)
         self.starting_index = starting_index
+        self.tags = tags + " order:id id:>=" + str(starting_index)
 
         self.current_page = 1
         self.posts = []
@@ -60,16 +128,16 @@ class HypnohubPostGetter(object):
         return self
 
     def get_next_batch(self):
-        params = {
-            'page': self.current_page,
-            'limit': self.limit_per_page}
+        params = {'page':  self._current_page,
+                  'limit': self.limit_per_page}
 
         if self.tags:
             params['tags'] = self.tags
 
         xml = requests.get("http://hypnohub.net/post/index.xml", params=params)
+
         # lxml won't install on my system so I have to use an html parser on
-        # xml. Trust me; it's better than the hack I was using before.
+        # xml. Trust me: it's better than the hack I was using before.
         #soup = bs4.BeautifulSoup(xml, 'html.parser')
         soup = bs4.BeautifulSoup(xml.text, 'html.parser')
 
@@ -118,65 +186,13 @@ class HypnohubPostGetter(object):
 
         return good_posts, bad_posts
 
-class HypnohubPost(object):
-    def __init__(self, post_soup):
-        self.post_soup = post_soup
-
-    def __getattr__(self, name):
-        # only called for invalid attr
-        try:
-            return self.post_soup[name]
-        except KeyError:
-            raise AttributeError(name)
-
-    __getitem__ = __getattr__
-
-    def __repr__(self):
-        return ("<HypnohubPost #{self.id}>").format(**locals())
-
-    def __str__(self):
-        return ("Post#{self.id} rated {self.score} by {self.author}").format(
-            **locals())
-
-    @ahto_lib.lazy_property
-    def tags(self):
-        return self['tags'].split(' ')
-
-    @ahto_lib.lazy_property
-    def url(self):
-        return "http://hypnohub.net/post/show/" + str(self.id) + "/"
-
-    @ahto_lib.lazy_property
-    def id(self):
-        return int(self['id'])
-
-    @ahto_lib.lazy_property
-    def score(self):
-        return int(self['score'])
-
-    def has_any(self, tags):
-        return any(tag in self.tags for tag in tags)
-
-    def has_all(self, tags):
-        return all(tag in self.tags for tag in tags)
-
-    @ahto_lib.lazy_property
-    def deleted(self):
-        try:
-            self.post_soup['file_url']
-        except KeyError:
-            return True
-        else:
-            return False
-        #return 'file_url' not in self.post_soup
-
-    @ahto_lib.lazy_property
-    def preview_url(self):
-        # self.post_soup['preview_url'] example:
-        # '//hypnohub.net//data/preview/2eea10e9b65a2de8e84ab88dcfd90575.jpg'
-        return 'http:' + self.post_soup['preview_url']
-
 def posts_to_html_file(filename, posts):
+    """ Gets an iterable of posts and turns them into an HTML file to display
+    them to the user, complete with preview images.
+
+    Includes a bunch of helpful info like the tag-by-tag breakdown of why each
+    post got the rating it did.
+    """
     with open(filename, 'w') as file_:
         file_.write("<html><body>\n")
 
@@ -193,6 +209,8 @@ def posts_to_html_file(filename, posts):
             ).format(**locals()))
 
             # Detailed rating info.
+            # TODO: Put this in post_rater and then just substitute '\n' for
+            # '<br/>\n' before we write it to the file.
             for tag in post.tags:
                 if tag in post_rater.TAG_RATINGS:
                     tag_rating = post_rater.TAG_RATINGS[tag]
