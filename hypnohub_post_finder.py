@@ -48,14 +48,14 @@ class HypnohubPost(object):
     """
 
     def __init__(self, post_soup):
-        self.post_soup = post_soup
+        self._post_soup = post_soup
 
     def __getattr__(self, name):
         """ Any invalid attribute reads (to stuff we haven't overwritten) get
         redirected to _post_soup's keys.
         """
         try:
-            return self.post_soup[name]
+            return self._post_soup[name]
         except KeyError:
             raise AttributeError(name)
 
@@ -95,12 +95,12 @@ class HypnohubPost(object):
     @ahto_lib.lazy_property
     def deleted(self):
         try:
-            self.post_soup['file_url']
+            self._post_soup['file_url']
         except KeyError:
             return True
         else:
             return False
-        #return 'file_url' not in self.post_soup
+        #return 'file_url' not in self._post_soup
 
     @ahto_lib.lazy_property
     def preview_url(self):
@@ -110,7 +110,7 @@ class HypnohubPost(object):
         #
         # Which is kinda weird and pernicious.
 
-        return 'http:' + self.post_soup['preview_url']
+        return 'http:' + self._post_soup['preview_url']
 
 class HypnohubPostGetter(object):
     """ An iterator for getting HypnohubPost's, starting at a given index. """
