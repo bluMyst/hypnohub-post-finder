@@ -251,12 +251,17 @@ def posts_to_browser(filename, posts):
 
 if __name__ == '__main__':
     try:
-        start_id = int(open('start_id.txt', 'r').read())
+        with open('start_id.txt', 'r') as f:
+            start_id = int(f.read())
+
         print("start_id.txt ->", start_id)
     except IOError:
-        open('start_id.txt', 'w').write('0')
         start_id = 0
-        print("No start_id.txt. Created as 0.")
+
+        with open('start_id.txt', 'w') as f:
+            f.write(str(start_id))
+
+        print("No start_id.txt. Created as " + str(start_id) + ".")
 
     try:
         posts_to_get = int(sys.argv[1])
@@ -272,14 +277,15 @@ if __name__ == '__main__':
     print("Showing {n_good}/{total}, filtered {n_bad}.".format(**locals()))
     posts_to_browser('good_posts.html', good_posts)
 
-
     next_post_id = str(post_getter.highest_id + 1)
 
     response = ahto_lib.yes_no(True, "Next unseen post is {next_post_id}. Save"
         " your progress?".format(**locals()))
 
     if response:
-        open('start_id.txt', 'w').write(next_post_id)
+        with open('start_id.txt', 'w') as f:
+            f.write(next_post_id)
+
         print('Written.')
     else:
         print('Not written.')
