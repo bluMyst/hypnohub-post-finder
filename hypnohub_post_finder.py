@@ -42,7 +42,7 @@ def usage():
 #   <post baz qux>
 # </posts>
 
-class HypnohubPost(object):
+class Post(object):
     """ Takes a BeautifulSoup of a Hypnohub post's XML data and gives you some
     convenient methods and properties for getting its info.
     """
@@ -62,7 +62,7 @@ class HypnohubPost(object):
     __getitem__ = __getattr__
 
     def __repr__(self):
-        return ("<HypnohubPost #{self.id}>").format(**locals())
+        return ("<Post #{self.id}>").format(**locals())
 
     def __str__(self):
         return ("Post#{self.id} rated {self.score} by {self.author}").format(
@@ -112,8 +112,8 @@ class HypnohubPost(object):
 
         return 'http:' + self._post_soup['preview_url']
 
-class HypnohubPostGetter(object):
-    """ An iterator for getting HypnohubPost's, starting at a given index. """
+class PostGetter(object):
+    """ An iterator for getting Post's, starting at a given index. """
 
     def __init__(self, starting_index=0, limit_per_page=LIMIT_PER_PAGE, search_string=""):
         self.limit_per_page = limit_per_page
@@ -142,7 +142,7 @@ class HypnohubPostGetter(object):
         soup = bs4.BeautifulSoup(xml.text, 'html.parser')
 
         for post in soup.find_all('post'):
-            post = HypnohubPost(post)
+            post = Post(post)
 
             if not post.deleted:
                 self.posts.append(post)
@@ -172,9 +172,9 @@ def get_n_good_posts(n, post_iterator, rater=post_rater.rate_post, sort=True):
     """ Returns tuple: ([good posts], number of bad posts filtered, number of
     good posts)
 
-    post_iterator should be a HypnohubPostGetter or any other iterable of
-    HypnohubPost's. Also: if you're feeling lazy, you can give it a post index
-    to start at and it'll make its own HypnohubPostGetter for you.
+    post_iterator should be a PostGetter or any other iterable of
+    Post's. Also: if you're feeling lazy, you can give it a post index
+    to start at and it'll make its own PostGetter for you.
 
     rater should be a number-returning function. Any post where
     rater(post) <= 0 will be filtered out. If sort == True, [good posts] will
@@ -182,7 +182,7 @@ def get_n_good_posts(n, post_iterator, rater=post_rater.rate_post, sort=True):
     """
 
     if not hasattr(post_iterator, '__iter__'):
-        post_iterator = HypnohubPostGetter(int(post_iterator))
+        post_iterator = PostGetter(int(post_iterator))
 
     post_filter = lambda post: rater(post) > 0
 
@@ -271,7 +271,7 @@ if __name__ == '__main__':
         usage()
         exit(1)
 
-    post_getter = HypnohubPostGetter(start_id)
+    post_getter = PostGetter(start_id)
     good_posts, n_bad, n_good = get_n_good_posts(posts_to_get, post_getter)
     total = n_bad + n_good
     print("Showing {n_good}/{total}, filtered {n_bad}.".format(**locals()))
