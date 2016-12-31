@@ -209,7 +209,7 @@ def posts_to_html_file(filename, posts):
     """ Gets an iterable of posts and turns them into an HTML file to display
     them to the user, complete with preview images.
 
-    Includes a bunch of helpful info like the tag-by-tag breakdown of why each
+    Includes a bunch of helpful info like a tag-by-tag breakdown of why each
     post got the rating it did.
     """
     with open(filename, 'w') as file_:
