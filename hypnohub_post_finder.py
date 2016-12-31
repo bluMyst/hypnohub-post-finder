@@ -115,12 +115,12 @@ class HypnohubPost(object):
 class HypnohubPostGetter(object):
     """ An iterator for getting HypnohubPost's, starting at a given index. """
 
-    def __init__(self, limit_per_page=LIMIT_PER_PAGE, tags="", starting_index=0):
+    def __init__(self, starting_index=0, limit_per_page=LIMIT_PER_PAGE, search_string=""):
         self.limit_per_page = limit_per_page
         self.starting_index = starting_index
-        self.tags = tags + " order:id id:>=" + str(starting_index)
+        self.search_string = search_string + " order:id id:>=" + str(starting_index)
 
-        self.current_page = 1
+        self._current_page = 1
         self.posts = []
         self.highest_id = -1
 
@@ -131,8 +131,8 @@ class HypnohubPostGetter(object):
         params = {'page':  self._current_page,
                   'limit': self.limit_per_page}
 
-        if self.tags:
-            params['tags'] = self.tags
+        if self.search_string:
+            params['tags'] = self.search_string
 
         xml = requests.get("http://hypnohub.net/post/index.xml", params=params)
 
@@ -147,7 +147,7 @@ class HypnohubPostGetter(object):
             if not post.deleted:
                 self.posts.append(post)
 
-        self.current_page += 1
+        self._current_page += 1
 
         time.sleep(DELAY_BETWEEN_REQUESTS)
 
