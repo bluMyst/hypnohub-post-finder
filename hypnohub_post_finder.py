@@ -168,23 +168,42 @@ class HypnohubPostGetter(object):
 
         return next_post
 
-    def get_n_good_posts(self, n, criteria_function=post_rater.post_filter, sort=True):
-        """ returns (good_posts, bad_posts) """
-        good_posts = []
-        bad_posts  = []
-        for post in self:
-            if criteria_function(post):
-                good_posts.append(post)
-            else:
-                bad_posts.append(post)
+def get_n_good_posts(n, post_iterator, rater=post_rater.rate_post, sort=True):
+    """ Returns tuple: ([good posts], number of bad posts filtered, number of
+    good posts)
+
+    post_iterator should be a HypnohubPostGetter or any other iterable of
+    HypnohubPost's. Also: if you're feeling lazy, you can give it a post index
+    to start at and it'll make its own HypnohubPostGetter for you.
+
+    rater should be a number-returning function. Any post where
+    rater(post) <= 0 will be filtered out. If sort == True, [good posts] will
+    be sorted by rater(post)'s value, desc.
+    """
+
+    if not hasattr(post_iterator, '__iter__'):
+        post_iterator = HypnohubPostGetter(int(post_iterator))
+
+    post_filter = lambda post: rater(post) > 0
+
+    good_posts = []
+    bad_posts_seen = 0
+
+    for post in post_iterator:
+        if post_filter(post):
+            good_posts.append(post)
 
             if len(good_posts) >= n:
                 break
+        else:
+            bad_posts_seen += 1
 
-        good_posts.sort(key=post_rater.rate_post, reverse=True)
-        bad_posts.sort( key=post_rater.rate_post, reverse=True)
+    if sort:
+        good_posts.sort(key=rater, reverse=True)
 
-        return good_posts, bad_posts
+    good_posts_seen = len(good_posts)
+
+    return good_posts, bad_posts_seen, good_posts_seen
 
 def posts_to_html_file(filename, posts):
     """ Gets an iterable of posts and turns them into an HTML file to display
@@ -247,19 +266,17 @@ if __name__ == '__main__':
         usage()
         exit(1)
 
-    post_getter = HypnohubPostGetter(starting_index=start_id)
-    good_posts, bad_posts = post_getter.get_n_good_posts(posts_to_get)
-
-    print(len(good_posts) + len(bad_posts), "posts reduced to:", len(good_posts))
-
+    post_getter = HypnohubPostGetter(start_id)
+    good_posts, n_bad, n_good = get_n_good_posts(posts_to_get, post_getter)
+    total = n_bad + n_good
+    print("Showing {n_good}/{total}, filtered {n_bad}.".format(**locals()))
     posts_to_browser('good_posts.html', good_posts)
-    posts_to_browser('bad_posts.html', bad_posts)
+
 
     next_post_id = str(post_getter.highest_id + 1)
 
-    response = ahto_lib.yes_no(True, 'Highest post id should be {}. Write'
-        ' that+1 ({}) to start_id.txt?'.format(
-            post_getter.highest_id, next_post_id))
+    response = ahto_lib.yes_no(True, "Next unseen post is {next_post_id}. Save"
+        " your progress?".format(**locals()))
 
     if response:
         open('start_id.txt', 'w').write(next_post_id)
