@@ -1,4 +1,4 @@
-BASE_RATING = 0
+BASE_RATING = -10
 
 TAG_RATINGS = {
     'death':                    -430,
