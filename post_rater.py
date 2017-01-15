@@ -60,6 +60,7 @@ TAG_RATINGS = {
     'mad_scientist':                -50,
     'pokemon':                      -50,
     'tickling':                     -50,
+    'translation_request':          -40,
     'manip':                        -40,
     'robot':                        -40,
     'pregnant':                     -40,
