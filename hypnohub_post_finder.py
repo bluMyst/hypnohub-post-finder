@@ -221,13 +221,27 @@ def posts_to_html_file(filename, posts):
             <html>
                 <head>
                     <style>
+                        body {
+                            background: #000;
+                            color: #00e0e0;
+                        }
+
+                        a {
+                            color: #00e0e0;
+                        }
+
                         .entry {
                             margin: 10px;
                             display: inline-table;
+                            width: 30%;
+                            background: #111;
                         }
 
                         .explanation {
                             font-family: "Lucida Console", Monaco, monospace;
+                            padding: 0 10%;
+                            margin-top: 20px;
+                            margin-bottom: 20px;
                         }
 
                         .title {
