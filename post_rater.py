@@ -26,12 +26,13 @@ def rate_post(post, explain=False):
     explanation is a human-readable string showing how we arrived at the rating
     we did.
     """
-    rating = cfg['General'].getfloat('Base Rating')
+    base_rating = cfg['General'].getfloat('Base Rating')
+    rating = base_rating
     sf = score_factor(post.score)
     rating += sf
 
     if explain:
-        explanation  = 'base rating: {rating:.0f}\n'.format(**locals())
+        explanation  = 'base rating: {:.0f}\n'.format(base_rating)
         explanation += ('score_factor({post.score})'
                         ' -> {sf:.0f}\n').format(**locals())
         explanation += "-"*30 + "\n"
