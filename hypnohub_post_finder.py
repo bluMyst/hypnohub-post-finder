@@ -6,16 +6,14 @@ import sys
 from pprint import pprint
 import bs4
 import itertools
+import configparser
+import textwrap
 
 import ahto_lib
 import post_rater
 
-DELAY_BETWEEN_REQUESTS =  1 # seconds
-DEFAULT_POSTS_TO_GET   = 50
-
-# I don't remember exactly how this works, but I think hypnohub will only let
-# you get so many images per request.
-LIMIT_PER_PAGE = 100
+cfg = configparser.ConfigParser()
+cfg.read('config.cfg')
 
 def usage():
     print("Usage: {sys.argv[0]} <posts to get>".format(**locals()))
@@ -65,7 +63,7 @@ class Post(object):
         return ("<Post #{self.id}>").format(**locals())
 
     def __str__(self):
-        return ("Post#{self.id} rated {self.score} by {self.author}").format(
+        return ("#{self.id} +{self.score} by {self.author}").format(
             **locals())
 
     @ahto_lib.lazy_property
@@ -115,10 +113,16 @@ class Post(object):
 class PostGetter(object):
     """ An iterator for getting Post's, starting at a given index. """
 
-    def __init__(self, starting_index=0, limit_per_page=LIMIT_PER_PAGE, search_string=""):
-        self.limit_per_page = limit_per_page
+    def __init__(self, starting_index=0, limit_per_page=None, search_string=""):
+        if limit_per_page == None:
+            self.limit_per_page = cfg['HTTP Requests'].getint('Limit Per Page')
+        else:
+            self.limit_per_page = limit_per_page
+
         self.starting_index = starting_index
-        self.search_string = search_string + " order:id id:>=" + str(starting_index)
+
+        self.search_string = "{search} order:id id:>={index}".format(
+            search=search_string, index=starting_index)
 
         self._current_page = 1
         self.posts = []
@@ -149,7 +153,7 @@ class PostGetter(object):
 
         self._current_page += 1
 
-        time.sleep(DELAY_BETWEEN_REQUESTS)
+        time.sleep(cfg['HTTP Requests'].getfloat('Delay Between Requests'))
 
     def __next__(self):
         # If we have no locally-stored posts, try 25 times to get new ones. If
@@ -213,34 +217,54 @@ def posts_to_html_file(filename, posts):
     post got the rating it did.
     """
     with open(filename, 'w') as file_:
-        file_.write("<html><body>\n")
+        file_.write(textwrap.dedent("""
+            <html>
+                <head>
+                    <style>
+                        .entry {
+                            margin: 10px;
+                            display: inline-table;
+                        }
+
+                        .explanation {
+                            font-family: "Lucida Console", Monaco, monospace;
+                        }
+
+                        .title {
+                            font-family: Arial, Helvetica, sans-serif;
+                            font-size: 125%;
+                            margin: 5px;
+                        }
+
+                        .preview {
+                            width: 100%;
+                        }
+                    </style>
+                </head><body>
+        """))
 
         for post in posts:
             post_string = str(post).replace('<', '&lt;').replace('>', '&gt;')
-            rating = post_rater.rate_post(post)
-            score_factor = post_rater.score_factor(post.score)
+            rating, explanation = post_rater.rate_post(post, explain=True)
 
-            file_.write((
-                "<a href='{post.url}'>\n"
-                "    {rating}: {post_string}<br/>\n"
-                "    <img src='{post.preview_url}'/><br/>\n"
-                "</a>\n"
-            ).format(**locals()))
+            file_.write(textwrap.dedent("""
+                <div class='entry'>
+                    <a href='{post.url}'>
+                        <h1 class='title'>
+                            {rating:.0f}: {post_string}<br/>
+                        </h1>
+                        <img class='preview' src='{post.preview_url}'/><br/>
+                    </a>
+            """).format(**locals()))
 
-            # Detailed rating info.
-            # TODO: Put this in post_rater and then just substitute '\n' for
-            # '<br/>\n' before we write it to the file.
-            for tag in post.tags:
-                if tag in post_rater.TAG_RATINGS:
-                    tag_rating = post_rater.TAG_RATINGS[tag]
-                    file_.write("{tag_rating}: {tag}<br/>\n".format(**locals()))
+            explanation = (
+                "<div class='explanation'>"
+                + explanation.replace('\n', '<br/>\n')
+                + "</div>"
+            )
 
-            file_.write((
-                'score_factor({post.score}) -> {score_factor}<br/>\n'
-                '----------------------------<br/>\n'
-                '{rating}<br/>\n'
-                '<br/>\n'
-            ).format(**locals()))
+            file_.write(explanation)
+            file_.write('</div>')
 
         file_.write("</body></html>\n")
 
@@ -266,7 +290,7 @@ if __name__ == '__main__':
     try:
         posts_to_get = int(sys.argv[1])
     except IndexError:
-        posts_to_get = DEFAULT_POSTS_TO_GET
+        posts_to_get = cfg['General'].getint('Default Posts to Get')
     except ValueError:
         usage()
         exit(1)
