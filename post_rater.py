@@ -34,6 +34,7 @@ def rate_post(post, explain=False):
         explanation  = 'base rating: {rating:.0f}\n'.format(**locals())
         explanation += ('score_factor({post.score})'
                         ' -> {sf:.0f}\n').format(**locals())
+        explanation += "-"*30 + "\n"
 
     for tag in post.tags:
         # CFG values are case insensitive, even when using 'in'.
