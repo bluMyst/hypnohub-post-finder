@@ -216,6 +216,8 @@ def posts_to_html_file(filename, posts):
     Includes a bunch of helpful info like a tag-by-tag breakdown of why each
     post got the rating it did.
     """
+    # TODO: This should really go in its own file and probably be an entire
+    #       class.
     with open(filename, 'w') as file_:
         file_.write(textwrap.dedent("""
             <html>
@@ -251,7 +253,10 @@ def posts_to_html_file(filename, posts):
                         }
 
                         .preview {
-                            width: 100%;
+                            max-width: 100%;
+                            margin: auto;
+                            display: block;
+                            height: 300px;
                         }
                     </style>
                 </head><body>
