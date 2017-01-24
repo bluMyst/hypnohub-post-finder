@@ -1,16 +1,14 @@
 import requests
 import time
-import webbrowser
-import os
 import sys
 from pprint import pprint
 import bs4
 import itertools
 import configparser
-import textwrap
 
 import ahto_lib
 import post_rater
+import html_generator
 
 cfg = configparser.ConfigParser()
 cfg.read('config.cfg')
@@ -209,89 +207,6 @@ def get_n_good_posts(n, post_iterator, rater=post_rater.rate_post, sort=True):
 
     return good_posts, bad_posts_seen, good_posts_seen
 
-def posts_to_html_file(filename, posts):
-    """ Gets an iterable of posts and turns them into an HTML file to display
-    them to the user, complete with preview images.
-
-    Includes a bunch of helpful info like a tag-by-tag breakdown of why each
-    post got the rating it did.
-    """
-    # TODO: This should really go in its own file and probably be an entire
-    #       class.
-    with open(filename, 'w') as file_:
-        file_.write(textwrap.dedent("""
-            <html>
-                <head>
-                    <style>
-                        body {
-                            background: #000;
-                            color: #00e0e0;
-                        }
-
-                        a {
-                            color: #00e0e0;
-                        }
-
-                        .entry {
-                            margin: 10px;
-                            display: inline-table;
-                            width: 30%;
-                            background: #111;
-                        }
-
-                        .explanation {
-                            font-family: "Lucida Console", Monaco, monospace;
-                            padding: 0 10%;
-                            margin-top: 20px;
-                            margin-bottom: 20px;
-                        }
-
-                        .title {
-                            font-family: Arial, Helvetica, sans-serif;
-                            font-size: 125%;
-                            margin: 5px;
-                        }
-
-                        .preview {
-                            max-width: 100%;
-                            margin: auto;
-                            display: block;
-                            height: 300px;
-                        }
-                    </style>
-                </head><body>
-        """))
-
-        for post in posts:
-            post_string = str(post).replace('<', '&lt;').replace('>', '&gt;')
-            rating, explanation = post_rater.rate_post(post, explain=True)
-
-            file_.write(textwrap.dedent("""
-                <div class='entry'>
-                    <a href='{post.url}'>
-                        <h1 class='title'>
-                            {rating:.0f}: {post_string}<br/>
-                        </h1>
-                        <img class='preview' src='{post.preview_url}'/><br/>
-                    </a>
-            """).format(**locals()))
-
-            explanation = (
-                "<div class='explanation'>"
-                + explanation.replace('\n', '<br/>\n')
-                + "</div>"
-            )
-
-            file_.write(explanation)
-            file_.write('</div>')
-
-        file_.write("</body></html>\n")
-
-def posts_to_browser(filename, posts):
-    posts_to_html_file(filename, posts)
-    webbrowser.open('file://{cwd}/{filename}'.format(
-        cwd=os.getcwd(), filename=filename))
-
 if __name__ == '__main__':
     try:
         with open('start_id.txt', 'r') as f:
@@ -318,7 +233,7 @@ if __name__ == '__main__':
     good_posts, n_bad, n_good = get_n_good_posts(posts_to_get, post_getter)
     total = n_bad + n_good
     print("Showing {n_good}/{total}, filtered {n_bad}.".format(**locals()))
-    posts_to_browser('good_posts.html', good_posts)
+    html_generator.posts_to_browser(good_posts)
 
     next_post_id = str(post_getter.highest_id + 1)
 
