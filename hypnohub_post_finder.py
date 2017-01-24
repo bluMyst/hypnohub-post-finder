@@ -243,10 +243,11 @@ if __name__ == '__main__':
     post_getter = PostGetter(start_id)
     good_posts, n_bad = post_getter.get_n_good_posts(posts_to_get)
 
+    n_good = len(good_posts)
     print("Showing {n_good}/{total}, filtered {n_bad}.".format(
         n_bad=n_bad,
-        n_good=len(good_posts),
-        total=n_bad + len(good_posts)))
+        n_good=n_good,
+        total=n_bad + n_good))
 
     html_generator.posts_to_browser(good_posts)
 
