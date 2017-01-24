@@ -14,7 +14,7 @@ cfg = configparser.ConfigParser()
 cfg.read('config.cfg')
 
 def usage():
-    print("Usage: {sys.argv[0]} <posts to get>".format(**locals()))
+    print("Usage:", sys.argv[0], "<posts to get>")
 
 # response XML looks like this:
 # <posts count="1337" offset="# posts skipped by page">
@@ -79,6 +79,26 @@ class Post(object):
     @ahto_lib.lazy_property
     def score(self):
         return int(self['score'])
+
+    def _rate_self(self):
+        r = post_rater.rate_post(self, explain=True)
+        self._rating, self._rating_explanation = r
+
+    @property
+    def rating(self):
+        try:
+            return self._rating
+        except AttributeError:
+            self._rate_self()
+            return self.rating
+
+    @property
+    def rating_explanation(self):
+        try:
+            return self._rating_explanation
+        except AttributeError:
+            self._rate_self()
+            return self.rating_explanation
 
     def has_any(self, tags):
         """ Is tagged with any of the given tags. """
@@ -170,42 +190,33 @@ class PostGetter(object):
 
         return next_post
 
-def get_n_good_posts(n, post_iterator, rater=post_rater.rate_post, sort=True):
-    """ Returns tuple: ([good posts], number of bad posts filtered, number of
-    good posts)
+    def get_n_good_posts(self, n, sort=True):
+        """ Returns tuple: ([good posts], number of bad posts filtered, number
+        of good posts)
 
-    post_iterator should be a PostGetter or any other iterable of
-    Post's. Also: if you're feeling lazy, you can give it a post index
-    to start at and it'll make its own PostGetter for you.
+        If sort == True, [good posts] will be sorted by post.rating's value,
+        desc.
+        """
 
-    rater should be a number-returning function. Any post where
-    rater(post) <= 0 will be filtered out. If sort == True, [good posts] will
-    be sorted by rater(post)'s value, desc.
-    """
+        post_filter = lambda post: post.rating > 0
+        post_rater  = lambda post: post.rating
 
-    if not hasattr(post_iterator, '__iter__'):
-        post_iterator = PostGetter(int(post_iterator))
+        good_posts = []
+        bad_posts_seen = 0
 
-    post_filter = lambda post: rater(post) > 0
+        for post in self:
+            if post_filter(post):
+                good_posts.append(post)
 
-    good_posts = []
-    bad_posts_seen = 0
+                if len(good_posts) >= n:
+                    break
+            else:
+                bad_posts_seen += 1
 
-    for post in post_iterator:
-        if post_filter(post):
-            good_posts.append(post)
+        if sort:
+            good_posts.sort(key=post_rater, reverse=True)
 
-            if len(good_posts) >= n:
-                break
-        else:
-            bad_posts_seen += 1
-
-    if sort:
-        good_posts.sort(key=rater, reverse=True)
-
-    good_posts_seen = len(good_posts)
-
-    return good_posts, bad_posts_seen, good_posts_seen
+        return good_posts, bad_posts_seen
 
 if __name__ == '__main__':
     try:
@@ -230,9 +241,13 @@ if __name__ == '__main__':
         exit(1)
 
     post_getter = PostGetter(start_id)
-    good_posts, n_bad, n_good = get_n_good_posts(posts_to_get, post_getter)
-    total = n_bad + n_good
-    print("Showing {n_good}/{total}, filtered {n_bad}.".format(**locals()))
+    good_posts, n_bad = post_getter.get_n_good_posts(posts_to_get)
+
+    print("Showing {n_good}/{total}, filtered {n_bad}.".format(
+        n_bad=n_bad,
+        n_good=len(good_posts),
+        total=n_bad + len(good_posts)))
+
     html_generator.posts_to_browser(good_posts)
 
     next_post_id = str(post_getter.highest_id + 1)
