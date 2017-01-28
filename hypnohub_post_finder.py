@@ -190,7 +190,7 @@ class PostGetter(object):
 
         return next_post
 
-    def get_n_good_posts(self, n, sort=True):
+    def get_n_good_posts(self, n, sort=True, print_progress=True):
         """ Returns tuple: ([good posts], number of bad posts filtered, number
         of good posts)
 
@@ -198,25 +198,45 @@ class PostGetter(object):
         desc.
         """
 
+        def progress():
+            if print_progress:
+                print(
+                    '\r{n}: {ng}/{t}'.format(
+                        n  = n,
+                        ng = n_good_posts,
+                        t  = bad_posts_seen + n_good_posts),
+
+                    sep='', end='')
+
         post_filter = lambda post: post.rating > 0
         post_rater  = lambda post: post.rating
 
         good_posts = []
+        n_good_posts = 0
         bad_posts_seen = 0
 
         for post in self:
+            progress()
+
             if post_filter(post):
                 good_posts.append(post)
+                n_good_posts += 1
+
+                # TODO: Debug code; remove later.
+                assert n_good_posts == len(good_posts)
 
                 if len(good_posts) >= n:
                     break
             else:
                 bad_posts_seen += 1
 
+        progress()
+        print()
+
         if sort:
             good_posts.sort(key=post_rater, reverse=True)
 
-        return good_posts, bad_posts_seen
+        return good_posts
 
 if __name__ == '__main__':
     try:
@@ -241,13 +261,7 @@ if __name__ == '__main__':
         exit(1)
 
     post_getter = PostGetter(start_id)
-    good_posts, n_bad = post_getter.get_n_good_posts(posts_to_get)
-
-    n_good = len(good_posts)
-    print("Showing {n_good}/{total}, filtered {n_bad}.".format(
-        n_bad=n_bad,
-        n_good=n_good,
-        total=n_bad + n_good))
+    good_posts = post_getter.get_n_good_posts(posts_to_get)
 
     html_generator.posts_to_browser(good_posts)
 
