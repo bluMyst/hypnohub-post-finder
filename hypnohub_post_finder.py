@@ -110,13 +110,17 @@ class Post(object):
 
     @ahto_lib.lazy_property
     def deleted(self):
-        try:
-            self._post_soup['file_url']
-        except KeyError:
-            return True
-        else:
-            return False
-        #return 'file_url' not in self._post_soup
+        #try:
+        #    self._post_soup['file_url']
+        #except KeyError:
+        #    return True
+        #else:
+        #    return False
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # NOTICE ME        If you get deleted posts, this is why.      NOTICE ME
+        # NOTICE ME     If you don't, please remove these comments.    NOTICE ME
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        return 'file_url' not in self._post_soup
 
     @ahto_lib.lazy_property
     def preview_url(self):
@@ -124,7 +128,7 @@ class Post(object):
         #
         # '//hypnohub.net//data/preview/2eea10e9b65a2de8e84ab88dcfd90575.jpg'
         #
-        # Which is kinda weird and pernicious.
+        # Fuck that.
 
         return 'http:' + self._post_soup['preview_url']
 
