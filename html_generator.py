@@ -55,7 +55,6 @@ def posts_to_html(posts):
     """
     doc, tag, text = yattag.Doc().tagtext()
 
-    #with open(filename, 'w') as file_:
     with tag('html'):
         with tag('head'):
             with tag('style'):
@@ -70,15 +69,11 @@ def posts_to_html(posts):
                         with tag('h1', klass='title'):
                             text('{rating:.0f}: {post_string}'.format(
                                 rating=rating, post_string=str(post)))
-                            doc.stag('br')
 
                         doc.stag('img', klass='preview', src=post.preview_url)
-                        doc.stag('br')
 
-                    with tag('div', klass='explanation'):
-                        for line in explanation.split('\n'):
-                            text(line)
-                            doc.stag('br')
+                    with tag('pre', klass='explanation'):
+                        text(explanation)
 
     return doc.getvalue()
 
