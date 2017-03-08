@@ -14,10 +14,8 @@ def score_factor(score):
         return 0
     elif 11 <= score <= 30:
         return score - 10
-    elif 31 <= score <= 400:
-        return 10 + score/10
-    elif 401 <= score:
-        return 50
+    elif 31 <= score:
+        return 10
 
 def rate_post(post, explain=False):
     """ Rate a post.
