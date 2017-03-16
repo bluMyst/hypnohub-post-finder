@@ -8,7 +8,45 @@ class TestPost(object):
 
 class NaiveBayesClassifier(object):
     """
-    Give it some Post's with tags and it'll try to guess which ones you'll like in the future.
+    Give it some Post's with tags and it'll try to guess which ones you'll like
+    in the future.
+
+    How it works:
+
+    Bayes's Theorem says:
+
+    P(A | B) = P(B | A) * P(A) / P(B)
+
+    Let's say that we want to know how likely someone is to like a certain Post.
+    The best indicator for this is the tags. Let's say that 'G' is the statement
+    "this post is good", and 'T0' is the statement "this post has tag number 0".
+
+    P(G | T0) = P(T0 | G) * P(G) / P(T0)
+
+    This would work really well if we only had one tag to deal with, but let's
+    say there are multiple tags: T0, T1, T2, ...
+
+    I'm going to use the caret (^) symbol in place of the logical AND symbol.
+
+    P(G | T0 ^ T1 ^ ...) = P(T0 ^ T1 ^ ... | G) * P(G) / P(T0 ^ T1 ^ ...)
+
+    Well that won't work at all! P(T0 ^ T1 ^ ...) will only match something with
+    exactly identical tags, and we almost definitely don't have anything like
+    that in our dataset.
+
+    Let's try something else. Let's intentionally make a bad(ish) assumption and
+    say that the tags are conditionally independent. Meaning that a post with T0
+    is just as likely to have T1 as a post without. (P(T0 ^ T1) = P(T0 ^ !T1)).
+    For conditionally independent tags:
+
+    P(X ^ Y | Z) = P(X | Z) * P(Y | Z)
+
+    So let's go back to our multi-tag problem:
+
+    P(G | T0 ^ T1) = P(T0 ^ T1 | G) * P(G) / P(T0 ^ T1)
+    P(G | T0 ^ T1) = P(T0 | G) * P(T1 | G) * P(G) / P(T0) * P(T1)
+
+    ------------------------------ CONTINUE LATER ------------------------------
     """
     def __init__(self, good_posts, bad_posts):
         self.good_posts = list(good_posts)
