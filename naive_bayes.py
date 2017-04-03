@@ -1,52 +1,134 @@
 import random
 import math
+import pickle
+import os
+
+"""
+    Here's what's going on:
+
+    I want to show the user posts based on a Naive Bayes Classifier's best guess
+    on how they'll like it.
+
+    However, the script can also be started in a "training" mode where we'll ask
+    the user what they think of totally random posts. They can either thumb them
+    up or thumb them down, and we'll add them to the dataset.
+
+    I don't want to have the user vote on stuff that the Classifier is
+    predicting the user will like, because it seems like we'd start having a
+    biased dataset.
+
+    Speaking of which, this is what the dataset needs to look like: A list of
+    good posts, by ID and a list of bad posts, by ID. Ideally the tags should be
+    stored, too.
+
+    Also, let's find a way to cache a list of all posts on Hypnohub. Just their
+    URL's, image URL's, and tags. It's only polite. But every time we start up
+    this script, it should download data on any new images.
+
+    However, we need to make sure that ID's and URL's all stay the same no
+    matter what. Can probably just ask.  Seems likely, because of all those
+    "image not found" images we keep getting.
+"""
 
 class TestPost(object):
     """ Used to test NaiveBayesClassifier. Please ignore. """
     def __init__(self, tags):
         self.tags = tags
 
+class Dataset(object):
+    """ Tracks the posts that the user has liked and disliked. Stores them in a
+        file for later use.
+
+        self.raw_dataset = {
+            'good': [good_posts],
+            'bad':  [bad_posts],
+        }
+    """
+    FILENAME = "post_preference_data.pickle"
+
+    def __init__(self):
+        if os.path.isfile(self.FILENAME):
+            with open(self.FILENAME, 'r') as data_file:
+                self.raw_dataset = pickle.load(data_file)
+        else:
+            self.raw_dataset = {'good':[], 'bad':[]}
+
+    @property
+    def good_posts(self):
+        return self.raw_dataset['good']
+
+    @property
+    def bad_posts(self):
+        return self.raw_dataset['bad']
+
+    def add_good(self, post):
+        self.raw_dataset['good'] += post
+
+    def add_bad(self, post):
+        self.raw_dataset['bad'] += post
+
+    def save(self):
+        """ Save dataset back to pickle file. """
+        with open(self.FILENAME, 'w') as data_file:
+            pickle.dump(self.raw_dataset, data_file)
+
 class NaiveBayesClassifier(object):
     """
-    Give it some Post's with tags and it'll try to guess which ones you'll like
-    in the future.
+        Give it some Post's with tags and it'll try to guess which ones you'll like
+        in the future.
 
-    How it works:
+        How it works:
 
-    Bayes's Theorem says:
+        Bayes's Theorem says:
 
-    P(A | B) = P(B | A) * P(A) / P(B)
+        P(A | B) = P(B | A) * P(A) / P(B)
 
-    Let's say that we want to know how likely someone is to like a certain Post.
-    The best indicator for this is the tags. Let's say that 'G' is the statement
-    "this post is good", and 'T0' is the statement "this post has tag number 0".
+        Let's say that we want to know how likely someone is to like a certain
+        Post.  The best indicator for this is the tags. Let's say that 'G' is
+        the statement "this post is good", and 'T0' is the statement "this post
+        has tag number 0".
 
-    P(G | T0) = P(T0 | G) * P(G) / P(T0)
+        P(G | T0) = P(T0 | G) * P(G) / P(T0)
 
-    This would work really well if we only had one tag to deal with, but let's
-    say there are multiple tags: T0, T1, T2, ...
+        This would work really well if we only had one tag to deal with, but
+        let's say there are multiple tags: T0, T1, T2, ...
 
-    I'm going to use the caret (^) symbol in place of the logical AND symbol.
+        I'm going to use the caret (^) symbol in place of the logical AND symbol.
 
-    P(G | T0 ^ T1 ^ ...) = P(T0 ^ T1 ^ ... | G) * P(G) / P(T0 ^ T1 ^ ...)
+        P(G | T0 ^ T1 ^ ... ^ Tn) = P(T0 ^ T1 ^ ... ^ Tn | G) * P(G) / P(T0 ^ T1 ^ ... ^ Tn)
 
-    Well that won't work at all! P(T0 ^ T1 ^ ...) will only match something with
-    exactly identical tags, and we almost definitely don't have anything like
-    that in our dataset.
+        Well that won't work at all! P(T0 ^ T1 ^ ...) will only match something
+        with exactly identical tags, and we almost definitely don't have
+        anything like that in our dataset.
 
-    Let's try something else. Let's intentionally make a bad(ish) assumption and
-    say that the tags are conditionally independent. Meaning that a post with T0
-    is just as likely to have T1 as a post without. (P(T0 ^ T1) = P(T0 ^ !T1)).
-    For conditionally independent tags:
+        Let's try something else. Let's intentionally make a bad(ish) assumption
+        and say that the tags are conditionally independent. Meaning that a post
+        with T0 is just as likely to have T1 as a post without. (P(T0 ^ T1) =
+        P(T0 ^ !T1)).  For conditionally independent tags:
 
-    P(X ^ Y | Z) = P(X | Z) * P(Y | Z)
+        P(X ^ Y | Z) = P(X | Z) * P(Y | Z)
 
-    So let's go back to our multi-tag problem:
+        So let's go back to our multi-tag problem:
 
-    P(G | T0 ^ T1) = P(T0 ^ T1 | G) * P(G) / P(T0 ^ T1)
-    P(G | T0 ^ T1) = P(T0 | G) * P(T1 | G) * P(G) / P(T0) * P(T1)
+        P(G | T0 ^ T1 ^ ... ^ Tn) = P(T0 ^ T1 ^ ... ^ Tn | G) * P(G) / P(T0 ^ T1 ^ ... ^ Tn)
 
-    ------------------------------ CONTINUE LATER ------------------------------
+        Let TGP be the "tag is good proportion" of all tags that we're
+        interested in combined. This isn't the proportion of good posts that
+        have all of the tags. In the vast majority of cases, our data is too
+        limited to get anything useful out of a query like that. We might find
+        one other post.  Instead, this is an extrapolation based on our
+        incomplete data.
+
+        TGP = P(G | T0 ^ T1 ^ ... ^ Tn) = P(T0 | G) * P(T1 | G) * ... * P(Tn | G)
+
+        Let TP be the "has tag proportion" of all tags in all posts we have data
+        on.  This is another extrapolation, using the same method as above.
+
+        TP = P(T0 ^ T1 ^ ... ^ Tn) = P(T0) * P(T1) * ... * P(Tn)
+
+        So basically, for a post with tags [T0, T1, ..., Tn]:
+
+        P(G | T0 ^ T1 ^ ... ^ Tn) = TGP * P(G) / TP
     """
     def __init__(self, good_posts, bad_posts):
         self.good_posts = list(good_posts)
@@ -55,8 +137,8 @@ class NaiveBayesClassifier(object):
         self.ngood = len(self.good_posts)
         self.total = len(self.bad_posts) + len(self.good_posts)
 
-        # p(good post) given no information about it
-        self.p_good = self.ngood / self.total
+        # P(G)
+        self.p_g = self.ngood / self.total
 
         # {'tag_name': [good_posts, total_posts], ...}
         self.tag_history = dict()
@@ -66,9 +148,7 @@ class NaiveBayesClassifier(object):
             for post in posts:
                 for tag in post.tags:
                     # self.tag_history looks like this:
-                    # {'tag_name': [good_posts, bad_posts], ...}
-                    # So target_index gives the index of either good_posts or
-                    # bad_posts.
+                    # {'tag_name': [good_posts, total_posts], ...}
                     if tag not in self.tag_history:
                         self.tag_history[tag] = [0, 0]
 
@@ -80,24 +160,48 @@ class NaiveBayesClassifier(object):
         count_tag_ratings(self.good_posts, True)
         count_tag_ratings(self.bad_posts,  False)
 
+    def p_t_g(self, tag):
+        """
+        P(tag | G)
+
+        What's the probability of a good post having this tag?
+        """
+        try:
+            return self.tag_history[tag][0] / self.ngood
+        except KeyError:
+            return 0
+
+    def p_t(self, tag):
+        """
+        P(tag)
+
+        What's the probability of any post having this tag?
+        """
+        try:
+            return self.tag_history[tag][1] / self.total
+        except KeyError:
+            return 0
+
     def predict(self, post):
         """
-        Guess the probability that the user will like a given post, based on tags.
+        Guess the probability that the user will like a given post, based on
+        tags.
         """
         # p(good | tag) = p(tag | good) * p(good) / p(tag)
-        p_good = self.p_good
+        tp = 1
+        tgp = 1
 
         for tag in post.tags:
             if tag not in self.tag_history:
                 continue
 
-            # p(good) *= p(tag | good)
-            p_good *= self.tag_history[tag][0] / self.ngood
+            # TGP *= P(tag | G)
+            tgp *= self.p_t_g(tag)
 
-            # p(good) /= p(tag)
-            p_good /= self.tag_history[tag][1] / self.total
+            # TP *= P(tag)
+            tp *= self.p_t(tag)
 
-        return p_good
+        return tgp * self.p_g / tp
 
 def split_dataset(dataset, split_ratio=0.33):
     """
