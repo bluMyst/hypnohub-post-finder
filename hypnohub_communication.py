@@ -2,9 +2,13 @@ import bs4
 import requests
 import time
 
+import ahto_lib
+
 """
 This file is for communicating with Hypnohub and formatting/understanding
 Hypnohub's responses.
+
+http://hypnohub.net/help/api
 """
 
 # response XML looks like this:
@@ -13,13 +17,17 @@ Hypnohub's responses.
 #     id="1337"
 #     tags="foo bar_(asdf) baz"
 #     score="0"
-#     rating="s"
+#     rating="s" # [s]afe, [q]uestionable, [e]xplicite
 #     author="foo"
 #
+#     preview_url="//hypnohub.net//data/preview/d74dced3bddd67137e14d084731bbc0f.jpg"
+#     file_url="//hypnohub.net//data/image/d74dced3bddd67137e14d084731bbc0f.jpg"
+#     sample_url ???
+#
 #     change="0" source="url" created_at="1465946415" creator_id="1337"
-#     md5 file_size="775434" file_url="hypnohub image url"
-#     is_shown_in_index="1" preview_url preview_width preview height
-#     actual_preview_width actual_preview_height sample_url sample_width
+#     md5 file_size="775434" is_shown_in_index="1"
+#     preview_width preview height
+#     actual_preview_width actual_preview_height sample_width
 #     sample_height sample_file_size="0" jpeg_url jpeg_width jpeg_height
 #     jpeg_file_size="0" status="active" width height
 #   />
@@ -29,46 +37,80 @@ Hypnohub's responses.
 #   <post baz qux>
 # </posts>
 
-class Post(object):
-    """ A simple way of storing the data of a hypnohub post.
+class SimplePost(object):
+    """ A simple way of storing the data of a hypnohub post. It intentionally
+    stores the bare minimum, because it's designed to be pickled with about
+    50,000 other SimplePosts.
     """
 
-    def __init__(self, data):
+    def __init__(self, data, validate=True):
         """
         data = {
-            'id': 1337,
-            tags: ['foo', 'bar'],
-            score: 1337,
-            rating: "s",
-            author: "foo",
-            file_url: "http://foo/foo.png",
-            sample_url: "http://foo/foo.png",
+            'id': "1337",
+            'tags': 'tag_1 tag_2 tag_3',
+            'score': "1337",
+            'rating': "s",
+            'author': "foo",
+            'file_url': "//foo/foo.png",
+            'sample_url': "//foo/foo.png",
         }
 
-        Look up what everything should be and look like!
+        Or it can be an object with those as attributes.
         """
-        self._data = data
+        identity = lambda x: x
+
+        self._data = dict()
+
+        if hasattr(data, 'author') and isinstance(data.author, str):
+            get_data = getattr
+        else:
+            get_data = lambda d, k: d[k]
+
+        self._data['id']          = get_data(data, 'id')
+        self._data['tags']        = get_data(data, 'tags')
+        self._data['score']       = get_data(data, 'score')
+        self._data['rating']      = get_data(data, 'rating')
+        self._data['author']      = get_data(data, 'author')
+        self._data['file_url']    = get_data(data, 'file_url')
+        self._data['preview_url'] = get_data(data, 'preview_url')
+
+        if validate:
+            assert self._data['rating'] in 'sqe'
+            int(self._data['id'])
+            int(self._data['score'])
 
     def __getattr__(self, name):
         """ Any invalid attribute reads (to stuff we haven't overwritten) get
-        redirected to _post_soup's keys.
+        redirected to _data's keys.
         """
         try:
-            return self._post_soup[name]
+            return self._data[name]
         except KeyError:
             raise AttributeError(name)
 
     __getitem__ = __getattr__
 
     def __repr__(self):
-        return ("<Post #{self.id}>").format(**locals())
+        return ("<SimplePost #{self.id}>").format(**locals())
 
     def __str__(self):
         return ("#{self.id} +{self.score} by {self.author}").format(
             **locals())
 
+    # These next two are for pickling. Since we use lazy_property's but we
+    # don't want to save their cached values to a file, we're only going to
+    # tell pickle about the self._data dict and ignore everything else.
+    def __getstate__(self):
+        return self._data
+
+    def __setstate__(self, data):
+        self._data = data
+
     @ahto_lib.lazy_property
     def tags(self):
+        """ Tags are usually in the form "tag_1 tag_2 tag_3 etc" so we'll automatically
+        convert them into a list.
+        """
         return self['tags'].split(' ')
 
     @ahto_lib.lazy_property
@@ -83,26 +125,6 @@ class Post(object):
     def score(self):
         return int(self['score'])
 
-    def _rate_self(self):
-        r = post_rater.rate_post(self, explain=True)
-        self._rating, self._rating_explanation = r
-
-    @property
-    def rating(self):
-        try:
-            return self._rating
-        except AttributeError:
-            self._rate_self()
-            return self.rating
-
-    @property
-    def rating_explanation(self):
-        try:
-            return self._rating_explanation
-        except AttributeError:
-            self._rate_self()
-            return self.rating_explanation
-
     def has_any(self, tags):
         """ Is tagged with any of the given tags. """
         return any(tag in self.tags for tag in tags)
@@ -114,26 +136,50 @@ class Post(object):
     @ahto_lib.lazy_property
     def deleted(self):
         try:
-            self._post_soup['file_url']
+            self._data['file_url']
         except KeyError:
             return True
         else:
             return False
-        #return 'file_url' not in self._post_soup
 
     @ahto_lib.lazy_property
     def preview_url(self):
-        # self._post_soup['preview_url'] is in the form:
+        # self._data['preview_url'] is in the form:
         #
         # '//hypnohub.net//data/preview/2eea10e9b65a2de8e84ab88dcfd90575.jpg'
-        #
-        # Which is kinda weird and pernicious.
 
-        return 'http:' + self._post_soup['preview_url']
+        return 'http:' + self._data['preview_url']
+
+    @ahto_lib.lazy_property
+    def file_url(self):
+        # self._data['preview_url'] is in the form:
+        #
+        # '//hypnohub.net//data/preview/2eea10e9b65a2de8e84ab88dcfd90575.jpg'
+
+        return 'http:' + self._data['file_url']
+
+class PostCache(object):
+    """ A cache of all posts on hypnohub.
+    """
+
+    FILENAME = "hypnohub_cache.pickle"
+
+    def __init__(self):
+        with open(FILENAME, 'r') as cache_file:
+            self.all_posts = pickle.load(cache_file)
+
+    def update_cache(self):
+
+    def save_cache(self):
+
+    def get_by_id(self):
 
 class BSPost(object):
     """ Takes a BeautifulSoup of a Hypnohub post's XML data and gives you some
     convenient methods and properties for getting its info.
+
+    This is a more complex and detailed view of a post than SimplePost. It's
+    good for debugging.
     """
 
     def __init__(self, post_soup):
@@ -151,7 +197,7 @@ class BSPost(object):
     __getitem__ = __getattr__
 
     def __repr__(self):
-        return ("<Post #{self.id}>").format(**locals())
+        return ("<BSPost #{self.id}>").format(**locals())
 
     def __str__(self):
         return ("#{self.id} +{self.score} by {self.author}").format(
@@ -258,6 +304,9 @@ class PostGetter(object):
 
         for post in soup.find_all('post'):
             post = BSPost(post)
+            # TODO: Replace with SimplePost instead. The problem is that later
+            # on it asks for post.rating, which SimplePost doesn't (and
+            # shouldn't) have.
 
             if not post.deleted:
                 self.posts.append(post)
