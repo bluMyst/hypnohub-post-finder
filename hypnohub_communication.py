@@ -37,6 +37,27 @@ http://hypnohub.net/help/api
 #   <post baz qux>
 # </posts>
 
+def get_posts(page=None, limit=None, tags=None):
+    """
+    Returns an iterable of raw(ish) BeautifulSoup objects. One for each post.
+    """
+    params = {}
+    if page is not None:
+        params['page'] = page
+
+    if limit is not None:
+        params['limit'] = limit
+
+    if tags is not None:
+        params['tags'] = tags
+
+    # lxml won't install on my system so I have to use an html parser on
+    # xml. Trust me: it's better than the hack I was using before.
+    xml = requests.get("http://hypnohub.net/post/index.xml", params=params)
+    soup = bs4.BeautifulSoup(xml.text, 'html.parser')
+
+    return soup.find_all('post')
+
 class SimplePost(object):
     """ A simple way of storing the data of a hypnohub post. It intentionally
     stores the bare minimum, because it's designed to be pickled with about
@@ -165,14 +186,31 @@ class PostCache(object):
     FILENAME = "hypnohub_cache.pickle"
 
     def __init__(self):
-        with open(FILENAME, 'r') as cache_file:
+        # example of all_posts = {
+        #     1: SimplePost(id=1)
+        #     2: SimplePost(id=2)
+        #     ...
+        #     999: SimplePost(id=999)
+        # }
+        with open(self.FILENAME, 'r') as cache_file:
             self.all_posts = pickle.load(cache_file)
 
+        self.highest_post = max(self.all_posts.keys())
+
+    def validate_data(self):
+        """ Make sure there aren't any gaps in the post ID's.
+        """
+        for i in range(1, highest_post + 1):
+            assert i in self.highest_post
+
     def update_cache(self):
+        new_posts = get_posts(tags="id:>" + str(self.highest_post))
+
+        for post in new_posts:
 
     def save_cache(self):
-
-    def get_by_id(self):
+        with open(self.FILENAME, 'w') as cache_file:
+            pickle.dump(self.all_posts, cache_file)
 
 class BSPost(object):
     """ Takes a BeautifulSoup of a Hypnohub post's XML data and gives you some
@@ -295,14 +333,7 @@ class PostGetter(object):
         if self.search_string:
             params['tags'] = self.search_string
 
-        xml = requests.get("http://hypnohub.net/post/index.xml", params=params)
-
-        # lxml won't install on my system so I have to use an html parser on
-        # xml. Trust me: it's better than the hack I was using before.
-        #soup = bs4.BeautifulSoup(xml, 'html.parser')
-        soup = bs4.BeautifulSoup(xml.text, 'html.parser')
-
-        for post in soup.find_all('post'):
+        for post in get_posts(**params):
             post = BSPost(post)
             # TODO: Replace with SimplePost instead. The problem is that later
             # on it asks for post.rating, which SimplePost doesn't (and
