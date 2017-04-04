@@ -48,7 +48,7 @@ class Dataset(object):
 
     def __init__(self):
         if os.path.isfile(self.FILENAME):
-            with open(self.FILENAME, 'r') as data_file:
+            with open(self.FILENAME, 'rb') as data_file:
                 self.raw_dataset = pickle.load(data_file)
         else:
             self.raw_dataset = {'good':[], 'bad':[]}
@@ -69,7 +69,7 @@ class Dataset(object):
 
     def save(self):
         """ Save dataset back to pickle file. """
-        with open(self.FILENAME, 'w') as data_file:
+        with open(self.FILENAME, 'wb') as data_file:
             pickle.dump(self.raw_dataset, data_file)
 
 class NaiveBayesClassifier(object):

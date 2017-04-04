@@ -1,6 +1,9 @@
 import bs4
 import requests
 import time
+import os
+import configparser
+import pickle
 
 import ahto_lib
 
@@ -24,12 +27,14 @@ http://hypnohub.net/help/api
 #     file_url="//hypnohub.net//data/image/d74dced3bddd67137e14d084731bbc0f.jpg"
 #     sample_url ???
 #
+#     status="active" or "deleted" maybe others
+#
 #     change="0" source="url" created_at="1465946415" creator_id="1337"
 #     md5 file_size="775434" is_shown_in_index="1"
 #     preview_width preview height
 #     actual_preview_width actual_preview_height sample_width
 #     sample_height sample_file_size="0" jpeg_url jpeg_width jpeg_height
-#     jpeg_file_size="0" status="active" width height
+#     jpeg_file_size="0" width height
 #   />
 #
 #   <post foo bar>
@@ -37,10 +42,19 @@ http://hypnohub.net/help/api
 #   <post baz qux>
 # </posts>
 
-def get_posts(page=None, limit=None, tags=None):
+cfg = configparser.ConfigParser()
+cfg.read('config.cfg')
+
+def get_posts(tags= None, page=None, limit=None):
     """
     Returns an iterable of raw(ish) BeautifulSoup objects. One for each post.
+
+    Remember that this won't be in any particular order unless you ask for
+    order:id or something like that.
     """
+
+    time.sleep(cfg['HTTP Requests'].getfloat('Delay Between Requests'))
+
     params = {}
     if page is not None:
         params['page'] = page
@@ -73,10 +87,12 @@ class SimplePost(object):
             'rating': "s",
             'author': "foo",
             'file_url': "//foo/foo.png",
-            'sample_url': "//foo/foo.png",
+            'preview_url': "//foo/foo.png",
         }
 
         Or it can be an object with those as attributes.
+
+        It's also okay, if the post is deleted, to not include 'author' or 'file_url'.
         """
         identity = lambda x: x
 
@@ -84,8 +100,10 @@ class SimplePost(object):
 
         if hasattr(data, 'author') and isinstance(data.author, str):
             get_data = getattr
+            has_data = hasattr
         else:
             get_data = lambda d, k: d[k]
+            has_data = lambda d, k: k in d
 
         self._data['id']          = get_data(data, 'id')
         self._data['tags']        = get_data(data, 'tags')
@@ -173,11 +191,14 @@ class SimplePost(object):
 
     @ahto_lib.lazy_property
     def file_url(self):
-        # self._data['preview_url'] is in the form:
+        # self._data['file_url'] is in the form:
         #
         # '//hypnohub.net//data/preview/2eea10e9b65a2de8e84ab88dcfd90575.jpg'
 
-        return 'http:' + self._data['file_url']
+        try:
+            return 'http:' + self._data['file_url']
+        except KeyError:
+            return "[deleted]"
 
 class PostCache(object):
     """ A cache of all posts on hypnohub.
@@ -187,29 +208,64 @@ class PostCache(object):
 
     def __init__(self):
         # example of all_posts = {
-        #     1: SimplePost(id=1)
-        #     2: SimplePost(id=2)
+        #     1: SimplePost(id=1),
+        #     2: SimplePost(id=2),
+        #     3: None, # deleted post
         #     ...
         #     999: SimplePost(id=999)
         # }
-        with open(self.FILENAME, 'r') as cache_file:
-            self.all_posts = pickle.load(cache_file)
+        if os.path.isfile(self.FILENAME):
+            with open(self.FILENAME, 'rb') as cache_file:
+                self.all_posts = pickle.load(cache_file)
+        else:
+            self.all_posts = {}
 
-        self.highest_post = max(self.all_posts.keys())
+        self._update_highest_post()
 
-    def validate_data(self):
-        """ Make sure there aren't any gaps in the post ID's.
+    def validate_data(self, print_progress=False):
+        """ Make sure there aren't any gaps in the post ID's, except for gaps
+        that hypnohub naturally has. (Try searching for "id:8989")
         """
-        for i in range(1, highest_post + 1):
-            assert i in self.highest_post
+        for i in range(1, self.highest_post + 1):
+            if i not in self.all_posts:
+                if print_progress:
+                    print("Missing ID#", i,
+                        "checking to make sure it doesn't exist...")
 
-    def update_cache(self):
-        new_posts = get_posts(tags="id:>" + str(self.highest_post))
+                assert len(get_posts("id:" + str(i))) == 0, i
+
+    def update_cache(self, print_progress=False):
+        new_posts = get_posts(tags="order:id id:>" + str(self.highest_post), limit=100)
+
+        if len(new_posts) == 0:
+            return
+
+        if print_progress:
+            print("ID#", new_posts[-1]['id'], end=' ')
+            print('-', len(new_posts), "posts", end=' ')
 
         for post in new_posts:
+            id_ = int(post['id'])
+
+            if post['status'] == 'deleted':
+                self.all_posts[id_] = None
+            else:
+                self.all_posts[id_] = SimplePost(post)
+
+        if print_progress:
+            print('-', len(self.all_posts), 'stored')
+
+        self._update_highest_post()
+        self.update_cache(print_progress)
+
+    def _update_highest_post(self):
+        if len(self.all_posts) == 0:
+            self.highest_post = 0
+        else:
+            self.highest_post = max(self.all_posts.keys())
 
     def save_cache(self):
-        with open(self.FILENAME, 'w') as cache_file:
+        with open(self.FILENAME, 'wb') as cache_file:
             pickle.dump(self.all_posts, cache_file)
 
 class BSPost(object):
@@ -343,8 +399,6 @@ class PostGetter(object):
                 self.posts.append(post)
 
         self._current_page += 1
-
-        time.sleep(cfg['HTTP Requests'].getfloat('Delay Between Requests'))
 
     def __next__(self):
         # If we have no locally-stored posts, try 25 times to get new ones. If
