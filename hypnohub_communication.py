@@ -4,6 +4,8 @@ import time
 import os
 import configparser
 import pickle
+import random
+import sys
 
 import ahto_lib
 
@@ -222,17 +224,23 @@ class PostCache(object):
 
         self._update_highest_post()
 
-    def validate_data(self, print_progress=False):
+    def validate_data(self, sample_size=300, print_progress=False):
         """ Make sure there aren't any gaps in the post ID's, except for gaps
         that hypnohub naturally has. (Try searching for "id:8989")
         """
-        for i in range(1, self.highest_post + 1):
-            if i not in self.all_posts:
-                if print_progress:
-                    print("Missing ID#", i,
-                        "checking to make sure it doesn't exist...")
+        missing_ids = [i for i in range(1, self.highest_post+1)
+                       if i not in self.all_posts]
 
-                assert len(get_posts("id:" + str(i))) == 0, i
+        for i, id_ in enumerate(random.sample(missing_ids, sample_size)):
+            if print_progress:
+                print('[', i+1, '/', sample_size, ']', sep='', end=' ')
+                print("Missing ID#", id_,
+                    "checking to make sure it doesn't exist...", end=' ')
+                sys.stdout.flush()
+
+            assert len(get_posts("id:" + str(id_))) == 0, id_
+
+            print("done.")
 
     def update_cache(self, print_progress=False):
         new_posts = get_posts(tags="order:id id:>" + str(self.highest_post), limit=100)
@@ -243,6 +251,7 @@ class PostCache(object):
         if print_progress:
             print("ID#", new_posts[-1]['id'], end=' ')
             print('-', len(new_posts), "posts", end=' ')
+            sys.stdout.flush()
 
         for post in new_posts:
             id_ = int(post['id'])
