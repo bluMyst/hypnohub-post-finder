@@ -198,6 +198,10 @@ class SimplePost(object):
         except KeyError:
             return "[deleted]"
 
+    @ahto_lib.lazy_property
+    def page_url(self):
+        return 'http://hypnohub.net/post/show/' + str(self._data['id']) + '/'
+
 class PostCache(object):
     """ A cache of all posts on hypnohub.
     """
