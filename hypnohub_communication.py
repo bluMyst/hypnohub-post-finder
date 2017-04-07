@@ -228,17 +228,18 @@ class PostCache(object):
         This will obviously take a very long time.
         """
         # [(id, exists), (id, exists), ...]
-        ids_and_existance = [i, (i in self.all_posts)
+        ids_and_existance = [(i, (i in self.all_posts))
                              for i in range(1, self.highest_post+1)]
 
         if sample_size is None or sample_size <= len(missing_ids):
-            sample = random.shuffle(ids_and_existance)
+            random.shuffle(ids_and_existance)
+            sample = ids_and_existance
         else:
             sample = random.sample(ids_and_existance, sample_size)
 
         for i, (id_, exists) in enumerate(sample):
             if print_progress:
-                print('[', i+1, '/', sample_size, ']', sep='', end=' ')
+                print('[', i+1, '/', len(sample), ']', sep='', end=' ')
                 print('Checking that ID#', id_, 'has existance:', exists, '...', end=' ')
                 sys.stdout.flush()
 
