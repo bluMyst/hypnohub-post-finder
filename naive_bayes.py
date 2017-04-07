@@ -69,13 +69,11 @@ class Dataset(object):
     def get_bad_posts(self):
         return (hhcom.post_cache.get_id(i) for i in self.raw_dataset['bad'])
 
-    def get_bad_posts(self):
-
     def add_good(self, post_id):
-        self.raw_dataset['good'].append(post)
+        self.raw_dataset['good'].append(int(post_id))
 
     def add_bad(self, post_id):
-        self.raw_dataset['bad'].append(post)
+        self.raw_dataset['bad'].append(int(post_id))
 
     def save(self):
         """ Save dataset back to pickle file. """
@@ -150,28 +148,51 @@ class NaiveBayesClassifier(object):
         self.ngood = len(self.good_posts)
         self.total = len(self.bad_posts) + len(self.good_posts)
 
-        # P(G)
-        self.p_g = self.ngood / self.total
+        self._update_p_g()
 
         # {'tag_name': [good_posts, total_posts], ...}
         self.tag_history = dict()
 
+    def _update_p_g(self):
+        # P(G)
+        try:
+            self.p_g = self.ngood / self.total
+        except ZeroDivisionError:
+            # We don't have any posts at all, so we'll default to 50% for each
+            # category.
+            self.p_g = 0.5
+
+    def add_good(self, post):
+        self.good_posts.append(post)
+        self.ngood += 1
+        self.total += 1
+        self._update_p_g()
+        self._add_tags(post, True)
+
+    def add_bad(self, post):
+        self.bad_posts.append(post)
+        self.total += 1
+        self._update_p_g()
+        self._add_tags(post, False)
+
+    def _add_tags(self, post, is_good):
+        for tag in post.tags:
+            # self.tag_history looks like this:
+            # {'tag_name': [good_posts, total_posts], ...}
+            if tag not in self.tag_history:
+                self.tag_history[tag] = [0, 0]
+
+            if is_good:
+                self.tag_history[tag][0] += 1
+
+            self.tag_history[tag][1] += 1
+
     def calculate(self):
-        def count_tag_ratings(posts, is_good):
-            for post in posts:
-                for tag in post.tags:
-                    # self.tag_history looks like this:
-                    # {'tag_name': [good_posts, total_posts], ...}
-                    if tag not in self.tag_history:
-                        self.tag_history[tag] = [0, 0]
+        for post in self.good_posts:
+            self._add_tags(post, True)
 
-                    if is_good:
-                        self.tag_history[tag][0] += 1
-
-                    self.tag_history[tag][1] += 1
-
-        count_tag_ratings(self.good_posts, True)
-        count_tag_ratings(self.bad_posts,  False)
+        for post in self.bad_posts:
+            self._add_tags(post, False)
 
     def p_t_g(self, tag):
         """
@@ -183,6 +204,12 @@ class NaiveBayesClassifier(object):
             return self.tag_history[tag][0] / self.ngood
         except KeyError:
             return 0
+        except ZeroDivisionError:
+            # If we don't have any data on good posts.
+            if self.total > 0:
+                return 0
+            else:
+                return 0.5
 
     def p_t(self, tag):
         """
@@ -194,6 +221,9 @@ class NaiveBayesClassifier(object):
             return self.tag_history[tag][1] / self.total
         except KeyError:
             return 0
+        except ZeroDivisionError:
+            # Just take a wild guess, if we have no dataset to try.
+            return 0.01
 
     def predict(self, post):
         """
