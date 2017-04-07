@@ -117,6 +117,10 @@ class RecommendationRequestHandler(StatefulRequestHandler):
             dh.send_error(404)
             return
 
+    def do_POST(self, dh):
+        # I have no idea if this is a good idea.
+        self.do_GET(dh)
+
     def make_root_page(self, dh):
         doc, tag, text = yattag.Doc().tagtext()
 
