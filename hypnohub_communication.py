@@ -220,6 +220,9 @@ class PostCache(object):
 
         self._update_highest_post()
 
+    def get_id(self, id_):
+        return self.all_posts[id_]
+
     def validate_data(self, sample_size=300, print_progress=False):
         """ Make sure there aren't any gaps in the post ID's, except for gaps
         that hypnohub naturally has. (Try searching for "id:8989")
@@ -282,6 +285,9 @@ class PostCache(object):
     def save_cache(self):
         with open(self.FILENAME, 'wb') as cache_file:
             pickle.dump(self.all_posts, cache_file)
+
+# Create just one instance that everybody can use at the same time.
+post_cache = PostCache()
 
 class BSPost(object):
     """ Takes a BeautifulSoup of a Hypnohub post's XML data and gives you some

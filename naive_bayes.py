@@ -3,31 +3,33 @@ import math
 import pickle
 import os
 
+import hypnohub_communication as hhcom
+
 """
-    Here's what's going on:
+Here's what's going on:
 
-    I want to show the user posts based on a Naive Bayes Classifier's best guess
-    on how they'll like it.
+I want to show the user posts based on a Naive Bayes Classifier's best guess
+on how they'll like it.
 
-    However, the script can also be started in a "training" mode where we'll ask
-    the user what they think of totally random posts. They can either thumb them
-    up or thumb them down, and we'll add them to the dataset.
+However, the script can also be started in a "training" mode where we'll ask
+the user what they think of totally random posts. They can either thumb them
+up or thumb them down, and we'll add them to the dataset.
 
-    I don't want to have the user vote on stuff that the Classifier is
-    predicting the user will like, because it seems like we'd start having a
-    biased dataset.
+I don't want to have the user vote on stuff that the Classifier is
+predicting the user will like, because it seems like we'd start having a
+biased dataset.
 
-    Speaking of which, this is what the dataset needs to look like: A list of
-    good posts, by ID and a list of bad posts, by ID. Ideally the tags should be
-    stored, too.
+Speaking of which, this is what the dataset needs to look like: A list of
+good posts, by ID and a list of bad posts, by ID. Ideally the tags should be
+stored, too.
 
-    Also, let's find a way to cache a list of all posts on Hypnohub. Just their
-    URL's, image URL's, and tags. It's only polite. But every time we start up
-    this script, it should download data on any new images.
+Also, let's find a way to cache a list of all posts on Hypnohub. Just their
+URL's, image URL's, and tags. It's only polite. But every time we start up
+this script, it should download data on any new images.
 
-    However, we need to make sure that ID's and URL's all stay the same no
-    matter what. Can probably just ask.  Seems likely, because of all those
-    "image not found" images we keep getting.
+However, we need to make sure that ID's and URL's all stay the same no
+matter what. Can probably just ask.  Seems likely, because of all those
+"image not found" images we keep getting.
 """
 
 class TestPost(object):
@@ -40,8 +42,8 @@ class Dataset(object):
         file for later use.
 
         self.raw_dataset = {
-            'good': [good_posts],
-            'bad':  [bad_posts],
+            'good': [good_post_ids],
+            'bad':  [bad_post_ids],
         }
     """
     FILENAME = "post_preference_data.pickle"
@@ -54,23 +56,34 @@ class Dataset(object):
             self.raw_dataset = {'good':[], 'bad':[]}
 
     @property
-    def good_posts(self):
+    def good_post_ids(self):
         return self.raw_dataset['good']
 
     @property
-    def bad_posts(self):
+    def bad_post_ids(self):
         return self.raw_dataset['bad']
 
-    def add_good(self, post):
-        self.raw_dataset['good'] += post
+    def get_good_posts(self):
+        return (hhcom.post_cache.get_id(i) for i in self.raw_dataset['good'])
 
-    def add_bad(self, post):
-        self.raw_dataset['bad'] += post
+    def get_bad_posts(self):
+        return (hhcom.post_cache.get_id(i) for i in self.raw_dataset['bad'])
+
+    def get_bad_posts(self):
+
+    def add_good(self, post_id):
+        self.raw_dataset['good'].append(post)
+
+    def add_bad(self, post_id):
+        self.raw_dataset['bad'].append(post)
 
     def save(self):
         """ Save dataset back to pickle file. """
         with open(self.FILENAME, 'wb') as data_file:
             pickle.dump(self.raw_dataset, data_file)
+
+# There should only ever be one of these, since the data is pickled.
+dataset = Dataset()
 
 class NaiveBayesClassifier(object):
     """
