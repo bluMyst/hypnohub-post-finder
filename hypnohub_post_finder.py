@@ -3,7 +3,7 @@ import configparser
 
 import ahto_lib
 import post_rater
-import html_generator
+import http_server
 import hypnohub_communication as hhcom
 
 cfg = configparser.ConfigParser()

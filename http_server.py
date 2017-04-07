@@ -5,6 +5,10 @@ import webbrowser
 
 import post_rater
 
+"""
+This file is for interacting with the user's web browser in various ways.
+"""
+
 FILENAME = 'good_posts.html'
 
 CSS = textwrap.dedent("""
