@@ -118,7 +118,7 @@ class RecommendationRequestHandler(StatefulRequestHandler):
             return
 
     def do_POST(self, dh):
-        # I have no idea if this is a good idea.
+        # This is probably a horrible idea.
         self.do_GET(dh)
 
     def make_root_page(self, dh):
