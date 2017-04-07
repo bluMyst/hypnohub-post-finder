@@ -7,9 +7,11 @@ import hypnohub_communication as hhcom
 if __name__ == '__main__':
     pc = hhcom.PostCache()
     pc.update_cache(True)
+    old_len = len(pc.all_posts)
     pc.save_cache()
 
     pc = hhcom.PostCache()
+    assert len(pc.all_posts) == old_len
     pc.validate_data(None, True)
 
 #if __name__ == '__main__':
