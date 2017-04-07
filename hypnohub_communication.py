@@ -96,16 +96,12 @@ class SimplePost(object):
 
         It's also okay, if the post is deleted, to not include 'author' or 'file_url'.
         """
-        identity = lambda x: x
-
         self._data = dict()
 
         if hasattr(data, 'author') and isinstance(data.author, str):
             get_data = getattr
-            has_data = hasattr
         else:
             get_data = lambda d, k: d[k]
-            has_data = lambda d, k: k in d
 
         self._data['id']          = get_data(data, 'id')
         self._data['tags']        = get_data(data, 'tags')
@@ -227,20 +223,29 @@ class PostCache(object):
     def validate_data(self, sample_size=300, print_progress=False):
         """ Make sure there aren't any gaps in the post ID's, except for gaps
         that hypnohub naturally has. (Try searching for "id:8989")
-        """
-        missing_ids = [i for i in range(1, self.highest_post+1)
-                       if i not in self.all_posts]
 
-        for i, id_ in enumerate(random.sample(missing_ids, sample_size)):
+        You can set sample_size to None and it'll check every single post.
+        This will obviously take a very long time.
+        """
+        # [(id, exists), (id, exists), ...]
+        ids_and_existance = [i, (i in self.all_posts)
+                             for i in range(1, self.highest_post+1)]
+
+        if sample_size is None or sample_size <= len(missing_ids):
+            sample = random.shuffle(ids_and_existance)
+        else:
+            sample = random.sample(ids_and_existance, sample_size)
+
+        for i, (id_, exists) in enumerate(sample):
             if print_progress:
                 print('[', i+1, '/', sample_size, ']', sep='', end=' ')
-                print("Missing ID#", id_,
-                    "checking to make sure it doesn't exist...", end=' ')
+                print('Checking that ID#', id_, 'has existance:', exists, '...', end=' ')
                 sys.stdout.flush()
 
-            assert len(get_posts("id:" + str(id_))) == 0, id_
+            assert len(get_posts("id:" + str(id_))) == int(exists), (id_, exists)
 
-            print("done.")
+            if print_progress:
+                print("done.")
 
     def update_cache(self, print_progress=False):
         new_posts = get_posts(tags="order:id id:>" + str(self.highest_post), limit=100)
