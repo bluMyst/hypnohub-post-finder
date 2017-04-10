@@ -1,28 +1,16 @@
-import random
 import webbrowser
 
 import hypnohub_communication as hhcom
 import naive_bayes
 
-def get_random_existant_post():
-    randomly_sorted_posts = list(i for i in hhcom.post_cache.all_posts.values())
-    random.shuffle(randomly_sorted_posts)
-
-    for post in randomly_sorted_posts:
-        if post is not None:
-            return post
-
 if __name__ == '__main__':
-    good_posts = naive_bayes.dataset.get_good_posts()
-    bad_posts  = naive_bayes.dataset.get_bad_posts()
-    classifier = naive_bayes.NaiveBayesClassifier(good_posts, bad_posts)
+    classifier = naive_bayes.NaiveBayesClassifier(
+        naive_bayes.dataset.get_good_posts(),
+        naive_bayes.dataset.get_bad_posts())
 
     try:
         while True:
-            if input("Press enter for next post or [q]uit.").lower() == 'q':
-                break
-
-            random_post = get_random_existant_post()
+            random_post = hhcom.post_cache.get_random_post()
             webbrowser.open(random_post.page_url)
 
             while True:
@@ -33,7 +21,7 @@ if __name__ == '__main__':
 
                 print("Invalid input:", like)
 
-            rating_before = classifier.predict(random_post)
+            rating_before = classifier.predict(random_post, debug=True)
 
             if like == 'y':
                 naive_bayes.dataset.add_good(random_post.id)
@@ -47,10 +35,13 @@ if __name__ == '__main__':
                     'to list of bad posts.')
 
             print("NaiveBayseClassifier rating:", rating_before, "(before)",
-                  classifier.predict(random_post), "(after)")
+                  classifier.predict(random_post, debug=True), "(after)")
             print()
+
+            if input("Press enter for next post or [q]uit.").lower() == 'q':
+                break
     except KeyboardInterrupt:
         pass
 
-    print("Saving dataset to pickle file...")
-    naive_bayes.dataset.save()
+    #print("Saving dataset to pickle file...")
+    #naive_bayes.dataset.save()

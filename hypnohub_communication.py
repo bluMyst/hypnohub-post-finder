@@ -74,6 +74,13 @@ def get_posts(tags= None, page=None, limit=None):
 
     return soup.find_all('post')
 
+def get_simple_posts(*args, **kwargs):
+    """
+    Like get_posts, except the posts are automatically converted into
+    SimplePosts.
+    """
+    return map(SimplePost, get_posts(*args, **kwargs))
+
 class SimplePost(object):
     """ A simple way of storing the data of a hypnohub post. It intentionally
     stores the bare minimum, because it's designed to be pickled with about
@@ -212,7 +219,6 @@ class PostCache(object):
         # example of all_posts = {
         #     1: SimplePost(id=1),
         #     2: SimplePost(id=2),
-        #     3: None, # deleted post
         #     ...
         #     999: SimplePost(id=999)
         # }
@@ -225,38 +231,67 @@ class PostCache(object):
         self._update_highest_post()
 
     def get_id(self, id_):
-        return self.all_posts[id_]
+        """ Returns None if the post doesn't exist. """
+        try:
+            return self.all_posts[id_]
+        except KeyError:
+            return None
 
-    def validate_data(self, sample_size=300, print_progress=False):
+    def validate_data(self, sample_size=300, print_progress=True):
         """ Make sure there aren't any gaps in the post ID's, except for gaps
         that hypnohub naturally has. (Try searching for "id:8989")
 
         You can set sample_size to None and it'll check every single post.
         This will obviously take a very long time.
         """
+        # TODO:
+        # I know what you're thinking: It doesn't have to be this slow! You can
+        # just do searches like one of these:
+        #
+        # id:>=100 id:<=200
+        # ~id:1337 ~id:6969 ~id:42
+        #
+        # Well it turns out that the former won't work because Hypnohub only
+        # follows the second (last?) "id:" statement, and the latter won't work
+        # because you can't use OR on a special operator like that. But there
+        # /is/ a workaround! Remember how HypnoHub will only give us a maximum
+        # of 100 posts at a time? Well all we have to do is ask for 100 posts
+        # and...
+        #
+        # order:id_desc id:<=300
+
         # [(id, exists), (id, exists), ...]
         ids_and_existance = [(i, (i in self.all_posts))
                              for i in range(1, self.highest_post+1)]
 
-        if sample_size is None or sample_size <= len(missing_ids):
+        if sample_size is None or sample_size >= len(ids_and_existance):
             random.shuffle(ids_and_existance)
             sample = ids_and_existance
+            sample_size = len(sample)
         else:
             sample = random.sample(ids_and_existance, sample_size)
 
         for i, (id_, exists) in enumerate(sample):
             if print_progress:
-                print('[', i+1, '/', len(sample), ']', sep='', end=' ')
-                print('Checking that ID#', id_, 'has existance:', exists, '...', end=' ')
+                print('[', i+1, '/', sample_size, ']', sep='', end=' ')
+                print('Checking that ID#', id_, 'has existance:', exists, '...',
+                      end=' ')
                 sys.stdout.flush()
 
-            assert len(get_posts("id:" + str(id_))) == int(exists), (id_, exists)
+            if len(get_posts("id:" + str(id_))) != int(exists):
+                if exists:
+                    raise Exception("Post #" + str(id_) + " doesn't exist but "
+                                    "it's in our cache.")
+                else:
+                    raise Exception("Post #" + str(id_) + " exists even though "
+                                    "we have no record of it in the cache.")
 
             if print_progress:
                 print("done.")
 
-    def update_cache(self, print_progress=False):
-        new_posts = get_posts(tags="order:id id:>" + str(self.highest_post), limit=100)
+    def update_cache(self, print_progress=True):
+        new_posts = get_posts(tags="order:id id:>" + str(self.highest_post),
+                              limit=100)
 
         if len(new_posts) == 0:
             return
@@ -269,9 +304,7 @@ class PostCache(object):
         for post in new_posts:
             id_ = int(post['id'])
 
-            if post['status'] == 'deleted':
-                self.all_posts[id_] = None
-            else:
+            if post['status'] != 'deleted':
                 self.all_posts[id_] = SimplePost(post)
 
         if print_progress:
@@ -289,6 +322,16 @@ class PostCache(object):
     def save_cache(self):
         with open(self.FILENAME, 'wb') as cache_file:
             pickle.dump(self.all_posts, cache_file)
+
+    def get_random_post(self):
+        randomly_sorted_posts = [i for i in self.all_posts.values()]
+        random.shuffle(randomly_sorted_posts)
+
+        for post in randomly_sorted_posts:
+            if post is not None:
+                return post
+
+        raise IndexError("All posts are None, or there are no posts.")
 
 # Create just one instance that everybody can use at the same time.
 post_cache = PostCache()
@@ -387,7 +430,7 @@ class BSPost(object):
         return 'http:' + self._post_soup['preview_url']
 
 class PostGetter(object):
-    """ An iterator for getting Post's, starting at a given index. """
+    """ An iterator for getting Posts, starting at a given index. """
 
     def __init__(self, starting_index=0, limit_per_page=None, search_string=""):
         if limit_per_page == None:

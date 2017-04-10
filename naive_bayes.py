@@ -127,7 +127,7 @@ class NaiveBayesClassifier(object):
         interested in combined. This isn't the proportion of good posts that
         have all of the tags. In the vast majority of cases, our data is too
         limited to get anything useful out of a query like that. We might find
-        one other post.  Instead, this is an extrapolation based on our
+        one other post. Instead, this is an extrapolation based on our
         incomplete data.
 
         TGP = P(G | T0 ^ T1 ^ ... ^ Tn) = P(T0 | G) * P(T1 | G) * ... * P(Tn | G)
@@ -141,7 +141,9 @@ class NaiveBayesClassifier(object):
 
         P(G | T0 ^ T1 ^ ... ^ Tn) = TGP * P(G) / TP
     """
-    def __init__(self, good_posts, bad_posts):
+    # TODO: I did something wrong, here. TP gets insanely small which causes
+    # predict() to output super high numbers.
+    def __init__(self, good_posts, bad_posts, auto_calculate=True):
         self.good_posts = list(good_posts)
         self.bad_posts  = list(bad_posts)
 
@@ -152,6 +154,9 @@ class NaiveBayesClassifier(object):
 
         # {'tag_name': [good_posts, total_posts], ...}
         self.tag_history = dict()
+
+        if auto_calculate:
+            self.calculate()
 
     def _update_p_g(self):
         # P(G)
@@ -225,25 +230,41 @@ class NaiveBayesClassifier(object):
             # Just take a wild guess, if we have no dataset to try.
             return 0.01
 
-    def predict(self, post):
+    def predict(self, post, debug=False):
         """
         Guess the probability that the user will like a given post, based on
         tags.
+
+        'debug' will print debug information if True.
         """
         # p(good | tag) = p(tag | good) * p(good) / p(tag)
         tp = 1
         tgp = 1
 
+        def d(*args, **kwargs):
+            """ print debug messages """
+            print('[NBC]', *args, **kwargs)
+
+        d("Predicting ID", post.id)
+
         for tag in post.tags:
             if tag not in self.tag_history:
                 continue
 
+            d("Tag:", tag)
+
             # TGP *= P(tag | G)
+            d("P(" + repr(tag), "| G) =", self.p_t_g(tag))
             tgp *= self.p_t_g(tag)
 
             # TP *= P(tag)
+            d("P(" + repr(tag) + ")   =", self.p_t(tag))
             tp *= self.p_t(tag)
 
+        d("TGP  =", tgp)
+        d("TP   =", tp)
+        d("P(G) =", self.p_g)
+        d("Post ID:", post.id, "is predicted at:", tgp * self.p_g / tp)
         return tgp * self.p_g / tp
 
 def split_dataset(dataset, split_ratio=0.33):
