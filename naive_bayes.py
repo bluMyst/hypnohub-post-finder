@@ -2,6 +2,7 @@ import random
 import math
 import pickle
 import os
+import abc
 
 import hypnohub_communication as hhcom
 
@@ -35,111 +36,78 @@ matter what. Can probably just ask.  Seems likely, because of all those
 class TestPost(object):
     """ Used to test NaiveBayesClassifier. Please ignore. """
     def __init__(self, tags):
-        self.tags = tags
+        self.tags = tags.split()
 
-class Dataset(object):
-    """ Tracks the posts that the user has liked and disliked. Stores them in a
-        file for later use.
+# Ducks are good and chickens are bad.
+test_dataset = {
+    'good': ['clucks feathers white'],
+    'bad': []
+}
 
-        self.raw_dataset = {
-            'good': [good_post_ids],
-            'bad':  [bad_post_ids],
-        }
-    """
-    FILENAME = "post_preference_data.pickle"
-
-    def __init__(self):
-        if os.path.isfile(self.FILENAME):
-            with open(self.FILENAME, 'rb') as data_file:
-                self.raw_dataset = pickle.load(data_file)
-        else:
-            self.raw_dataset = {'good':[], 'bad':[]}
-
-    @property
-    def good_post_ids(self):
-        return self.raw_dataset['good']
-
-    @property
-    def bad_post_ids(self):
-        return self.raw_dataset['bad']
-
-    def get_good_posts(self):
-        return (hhcom.post_cache.get_id(i) for i in self.raw_dataset['good'])
-
-    def get_bad_posts(self):
-        return (hhcom.post_cache.get_id(i) for i in self.raw_dataset['bad'])
-
-    def add_good(self, post_id):
-        self.raw_dataset['good'].append(int(post_id))
-
-    def add_bad(self, post_id):
-        self.raw_dataset['bad'].append(int(post_id))
-
-    def save(self):
-        """ Save dataset back to pickle file. """
-        with open(self.FILENAME, 'wb') as data_file:
-            pickle.dump(self.raw_dataset, data_file)
-
-# There should only ever be one of these, since the data is pickled.
-dataset = Dataset()
+class PostClassifierABC(metaclass=abc.ABCMeta):
+    def __init__(self, ):
+        # TODO: Come back here later. We need to blend together the logic of
+        # Dataset and post_cache first.
+        self.good_posts = list(good_posts)
+        self.bad_posts  = list(bad_posts)
 
 class NaiveBayesClassifier(object):
     """
-        Give it some Post's with tags and it'll try to guess which ones you'll like
-        in the future.
+    Give it some Post's with tags and it'll try to guess which ones you'll like
+    in the future.
 
-        How it works:
+    How it works:
 
-        Bayes's Theorem says:
+    Bayes's Theorem says, given evidence E and a state we're interested in S:
 
-        P(A | B) = P(B | A) * P(A) / P(B)
+    P(S | E) = P(E | S) * P(S) / P(E)
 
-        Let's say that we want to know how likely someone is to like a certain
-        Post.  The best indicator for this is the tags. Let's say that 'G' is
-        the statement "this post is good", and 'T0' is the statement "this post
-        has tag number 0".
+    Let's say that we want to know how likely someone is to like a certain
+    Post. The best indicator for this is the tags. Let's say that 'G' is
+    the statement "this post is good", and 'T0' is the statement "this post
+    has tag number 0".
 
-        P(G | T0) = P(T0 | G) * P(G) / P(T0)
+    P(G | T0) = P(T0 | G) * P(G) / P(T0)
 
-        This would work really well if we only had one tag to deal with, but
-        let's say there are multiple tags: T0, T1, T2, ...
+    This would work really well if we only had one tag to deal with, but
+    let's say there are multiple tags: T0, T1, T2, ...
 
-        I'm going to use the caret (^) symbol in place of the logical AND symbol.
+    I'm going to use the caret (^) symbol in place of the logical AND symbol.
 
-        P(G | T0 ^ T1 ^ ... ^ Tn) = P(T0 ^ T1 ^ ... ^ Tn | G) * P(G) / P(T0 ^ T1 ^ ... ^ Tn)
+    P(G | T0 ^ T1 ^ ... ^ Tn) = P(T0 ^ T1 ^ ... ^ Tn | G) * P(G) / P(T0 ^ T1 ^ ... ^ Tn)
 
-        Well that won't work at all! P(T0 ^ T1 ^ ...) will only match something
-        with exactly identical tags, and we almost definitely don't have
-        anything like that in our dataset.
+    Well that won't work at all! P(T0 ^ T1 ^ ...) will only match something
+    with exactly identical tags, and we almost definitely don't have
+    anything like that in our dataset.
 
-        Let's try something else. Let's intentionally make a bad(ish) assumption
-        and say that the tags are conditionally independent. Meaning that a post
-        with T0 is just as likely to have T1 as a post without. (P(T0 ^ T1) =
-        P(T0 ^ !T1)).  For conditionally independent tags:
+    Let's try something else. Let's intentionally make a bad(ish) assumption
+    and say that the tags are conditionally independent. Meaning that a post
+    with T0 is just as likely to have T1 as a post without. (P(T0 | T1) =
+    P(T0 | !T1)).  For conditionally independent tags:
 
-        P(X ^ Y | Z) = P(X | Z) * P(Y | Z)
+    P(X ^ Y | Z) = P(X | Z) * P(Y | Z)
 
-        So let's go back to our multi-tag problem:
+    So let's go back to our multi-tag problem:
 
-        P(G | T0 ^ T1 ^ ... ^ Tn) = P(T0 ^ T1 ^ ... ^ Tn | G) * P(G) / P(T0 ^ T1 ^ ... ^ Tn)
+    P(G | T0 ^ T1 ^ ... ^ Tn) = P(T0 ^ T1 ^ ... ^ Tn | G) * P(G) / P(T0 ^ T1 ^ ... ^ Tn)
 
-        Let TGP be the "tag is good proportion" of all tags that we're
-        interested in combined. This isn't the proportion of good posts that
-        have all of the tags. In the vast majority of cases, our data is too
-        limited to get anything useful out of a query like that. We might find
-        one other post. Instead, this is an extrapolation based on our
-        incomplete data.
+    Let TGP be the "tag is good proportion" of all tags that we're
+    interested in combined. This isn't the proportion of good posts that
+    have all of the tags. In the vast majority of cases, our data is too
+    limited to get anything useful out of a query like that. We might find
+    one other post. Instead, this is an extrapolation based on our
+    incomplete data.
 
-        TGP = P(G | T0 ^ T1 ^ ... ^ Tn) = P(T0 | G) * P(T1 | G) * ... * P(Tn | G)
+    TGP = P(T0 ^ T1 ^ ... ^ Tn | G) = P(T0 | G) * P(T1 | G) * ... * P(Tn | G)
 
-        Let TP be the "has tag proportion" of all tags in all posts we have data
-        on.  This is another extrapolation, using the same method as above.
+    Let TP be the "has tag proportion" of all tags in all posts we have data
+    on. This is another extrapolation, using the same method as above.
 
-        TP = P(T0 ^ T1 ^ ... ^ Tn) = P(T0) * P(T1) * ... * P(Tn)
+    TP = P(T0 ^ T1 ^ ... ^ Tn) = P(T0) * P(T1) * ... * P(Tn)
 
-        So basically, for a post with tags [T0, T1, ..., Tn]:
+    So basically, for a post with tags [T0, T1, ..., Tn]:
 
-        P(G | T0 ^ T1 ^ ... ^ Tn) = TGP * P(G) / TP
+    P(G | T0 ^ T1 ^ ... ^ Tn) = TGP * P(G) / TP
     """
     # TODO: I did something wrong, here. TP gets insanely small which causes
     # predict() to output super high numbers.
@@ -203,12 +171,10 @@ class NaiveBayesClassifier(object):
         """
         P(tag | G)
 
-        What's the probability of a good post having this tag?
+        What's the probability of this tag existing in a random good post?
         """
         try:
             return self.tag_history[tag][0] / self.ngood
-        except KeyError:
-            return 0
         except ZeroDivisionError:
             # If we don't have any data on good posts.
             if self.total > 0:
@@ -224,8 +190,6 @@ class NaiveBayesClassifier(object):
         """
         try:
             return self.tag_history[tag][1] / self.total
-        except KeyError:
-            return 0
         except ZeroDivisionError:
             # Just take a wild guess, if we have no dataset to try.
             return 0.01

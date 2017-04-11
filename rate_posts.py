@@ -2,15 +2,26 @@ import webbrowser
 
 import hypnohub_communication as hhcom
 import naive_bayes
+import post_data
+
+def get_random_uncategorized_post():
+    """ Get a random post from the cache that has yet to be categorized
+        into either 'good' or 'bad'.
+    """
+    randomly_sorted_posts = [
+        i for i in post_data.dataset.all_posts.values()
+        if i.id not in self.good and i.id not in self.bad]
+
+    return random.choice(randomly_sorted_posts)
 
 if __name__ == '__main__':
     classifier = naive_bayes.NaiveBayesClassifier(
-        naive_bayes.dataset.get_good_posts(),
-        naive_bayes.dataset.get_bad_posts())
+        post_data.dataset.get_good(),
+        post_data.dataset.get_bad())
 
     try:
         while True:
-            random_post = hhcom.post_cache.get_random_post()
+            random_post = get_random_uncategorized_post()
             webbrowser.open(random_post.page_url)
 
             while True:
@@ -23,16 +34,20 @@ if __name__ == '__main__':
 
             rating_before = classifier.predict(random_post, debug=True)
 
+            print('-'*80)
+
             if like == 'y':
-                naive_bayes.dataset.add_good(random_post.id)
+                post_data.dataset.add_good(random_post.id)
                 classifier.add_good(random_post)
                 print("Adding post ID#", random_post.id,
                     'to list of good posts.')
             else:
-                naive_bayes.dataset.add_bad(random_post.id)
+                post_data.dataset.add_bad(random_post.id)
                 classifier.add_bad(random_post)
                 print("Adding post ID#", random_post.id,
                     'to list of bad posts.')
+
+            print('-'*80)
 
             print("NaiveBayseClassifier rating:", rating_before, "(before)",
                   classifier.predict(random_post, debug=True), "(after)")
@@ -43,5 +58,6 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         pass
 
-    #print("Saving dataset to pickle file...")
-    #naive_bayes.dataset.save()
+    print("Saving dataset to pickle file...", end=' ')
+    post_data.dataset.save()
+    print("done.")
