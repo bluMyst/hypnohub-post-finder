@@ -5,7 +5,6 @@ import webbrowser
 import http.server
 import random
 
-import post_rater
 import post_data
 
 """
@@ -14,6 +13,9 @@ This file is for interacting with the user's web browser in various ways.
 
 with open('http_server/main.css', 'r') as css_file:
     CSS = css_file.read()
+
+with open('http_server/vote.js', 'r') as vote_js_file:
+    VOTE_JS = vote_js_file.read()
 
 def get_random_uncategorized_post():
     """ Get a random post from the cache that has yet to be categorized
@@ -144,52 +146,7 @@ class RecommendationRequestHandler(StatefulRequestHandler):
 
                 with tag('script', type='text/javascript'):
                     doc.asis("var post_id = " + str(random_post.id))
-                    doc.asis("""
-                        var has_voted = false
-
-                        function vote(direction) {
-                            // direction == true: upvote
-                            // direction == false: downvote
-                            if (!has_voted) {
-                                var confirmation = confirm(
-                                    "Want to "
-                                    + (direction ? 'upvote' : 'downvote')
-                                    + " the current image?"
-                                )
-
-                                if (!confirmation) { return }
-
-                                has_voted = true
-
-                                var oReq = new XMLHttpRequest()
-                                oReq.addEventListener("load",
-                                    function(){
-                                        alert('Voted: ' + direction.toString())
-                                        location.reload()
-                                    }
-                                )
-
-                                oReq.open(
-                                    "POST",
-                                    "/vote?direction=" + direction.toString()
-                                    + "&id=" + post_id.toString()
-                                )
-
-                                oReq.send()
-                            }
-                        }
-
-                        function upvote()   {vote(true)}
-                        function downvote() {vote(false)}
-
-                        document.addEventListener('keyup', function(event){
-                            if (event.key === 'a') {
-                                upvote()
-                            } else if (event.key === 'z') {
-                                downvote()
-                            }
-                        })
-                    """)
+                    doc.asis(VOTE_JS)
 
             with tag('body'):
                 with tag('h1'):
