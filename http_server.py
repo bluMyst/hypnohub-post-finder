@@ -56,10 +56,13 @@ CSS = textwrap.dedent("""
 def get_random_uncategorized_post():
     """ Get a random post from the cache that has yet to be categorized
         into either 'good' or 'bad'.
+
+        Raises an IndexError if the post cache is empty.
     """
     randomly_sorted_posts = [
         i for i in post_data.dataset.cache.values()
-        if i.id not in self.good and i.id not in self.bad]
+        if i.id not in post_data.dataset.good
+        and i.id not in post_data.dataset.bad]
 
     return random.choice(randomly_sorted_posts)
 
@@ -162,12 +165,14 @@ class RecommendationRequestHandler(StatefulRequestHandler):
                     text("This will be the rating page once I get stuff "
                          "working.")
 
-                    random_post = get_random_uncategorized_post()
+                random_post = get_random_uncategorized_post()
 
-                    with tag('h'):
-                        text('ID#: ' + str(random_post.id))
+                with tag('h1'):
+                    text('ID#: ' + str(random_post.id))
 
-                    tag(img, src=random_post.preview_url)
+                with tag('a', href=random_post.page_url):
+                    doc.stag('img', src=random_post.file_url,
+                             style="display: block;")
 
         dh.send_response(200)
         dh.send_header('Content-type', 'text/html')

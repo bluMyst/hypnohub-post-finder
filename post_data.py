@@ -1,4 +1,5 @@
 import os
+import pickle
 
 import hypnohub_communication as hhcom
 
@@ -67,7 +68,7 @@ class SimplePost(object):
         else:
             get_data = lambda k: data[k]
 
-        self.id          = int(get_data(data, 'id'))
+        self.id          = int(get_data('id'))
         self.tags        = get_data('tags').split(' ')
         self.score       = int(get_data('score'))
         self.rating      = get_data('rating')
@@ -116,8 +117,7 @@ class Dataset(object):
             self.good = raw_dataset['good']
             self.bad = raw_dataset['bad']
 
-            # cache = {
-            self.cache = raw_datset['cache']
+            self.cache = raw_dataset['cache']
         else:
             self.good = set()
             self.bad = set()
