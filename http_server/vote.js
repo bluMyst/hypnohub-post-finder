@@ -13,21 +13,27 @@ function vote(direction) {
             + " the current image?"
         )
 
+        var fail_handler = function () {
+            alert("Vote request failed. See console for details.")
+            console.log("Vote request failed. Args:")
+            console.log(arguments)
+        }
+
         if (!confirmation) { return }
 
-        has_voted = true
-
         var oReq = new XMLHttpRequest()
-        oReq.addEventListener("load",
-            function() {
-                alert('Voted: ' + direction.toString())
-                location.reload()
-            }
-        )
 
-        oReq.open(
-            "POST",
-            "/vote?direction=" + direction.toString()
+        oReq.addEventListener("load", function(oEvent)  {
+            // has_voted is useless unless you comment out location.reload()
+            has_voted = true
+            location.reload()
+        })
+
+        oReq.addEventListener("error", fail_handler)
+        oReq.addEventListener("abort", fail_handler)
+
+        oReq.open("GET", "/vote"
+            + "?direction=" + direction.toString()
             + "&id=" + post_id.toString()
         )
 

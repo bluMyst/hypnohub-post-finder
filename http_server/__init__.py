@@ -4,6 +4,8 @@ import os
 import webbrowser
 import http.server
 import random
+import urllib.parse
+import functools
 
 import post_data
 
@@ -44,10 +46,12 @@ class StatefulRequestHandler(object):
     forwards any interesting calls to our StatefulRequestHandler object. I call
     it a dummy handler.
 
-    If that doesn't make any sense, I don't blame you. I can barely wrap my own
-    head around it and *I* wrote the code! It's just the only way I could think
-    of to preserve any kind of state without dumping variables galore into the
-    global namespace of this file.
+    If you can't understand what that means, I don't blame you. Just look at
+    the code for __init__ and figure it out for yourself. It's actually not
+    that difficult of a concept; it's just hard to put into words.
+
+    It's the only way I could think of to preserve any kind of state without
+    dumping variables galore into the global namespace of this file.
 
     'dh' is short for DummyHandler, and 'srh' is short for
     StatefulRequestHandler. The variable names are so terse because they're used
@@ -78,42 +82,120 @@ class StatefulRequestHandler(object):
     def do_POST(self, dh):
         raise NotImplementedError
 
-class RecommendationRequestHandler(StatefulRequestHandler):
-    # TODO: Parse URL's properly! dh.path includes all the ?foo=bar&bar=baz
-    #       urllib.parse
-    def do_GET(self, dh):
-        if dh.client_address[0] != '127.0.0.1':
-            dh.send_error(403, explain="Only serving 127.0.0.1, not "
-                          + dh.client_address[0])
-            return
+class AhtoRequestHandler(StatefulRequestHandler):
+    """
+    Adds a few extra features to StatefulRequestHandler. Read the docstring for
+    that one first.
 
-        if dh.path == '/':
-            self.make_root_page(dh)
-        elif dh.path == '/ratings':
-            self.make_rating_page(dh)
-        elif dh.path == '/vote':
-            dh.send_error(501)
-        else:
+    Example self.PATHS: {
+        '/':         [['GET', 'POST'], handler1],
+        '/vote':     [['POST'], handler2],
+        '/ratings':  [['GET'], handler3],
+    }
+
+    Those handlers on the right are called like: handler(self, dh). But the
+    'self' is implicite, of course, so if you wanted to manually call a handler
+    you'd call it as handler(dh).
+    """
+    PATH = {}
+
+    def __init__(self, *args, **kwargs):
+        # Give all of the handlers a sense of self, as if they were called as
+        # normal methods.
+        for key, (_, handler) in self.PATH.items():
+            self.PATH[key][1] = functools.partial(handler, self)
+
+        super(AhtoRequestHandler, self).__init__(*args, **kwargs)
+
+    def do_POST_and_GET(self, dh):
+        dh.path_parsed = urllib.parse.urlparse(dh.path)
+        dh.query_string = urllib.parse.parse_qs(dh.path_parsed.query)
+
+        if dh.path_parsed.path not in self.PATHS:
             dh.send_error(404)
             return
 
-    def do_POST(self, dh):
-        if dh.path.startswith('/vote'):
-            self.vote(dh)
-        else:
+        supported_protocols, handler = self.PATHS[dh.path_parsed.path]
+
+        if dh.command not in supported_protocols:
             dh.send_error(501)
+            return
+
+        handler(dh)
+
+    do_POST = do_GET = do_POST_and_GET
+
+class RecommendationRequestHandler(AhtoRequestHandler):
+    # TODO: Parse URL's properly! dh.path includes all the ?foo=bar&bar=baz
+    #       urllib.parse
+    def __init__(self, *args, **kwargs):
+        self.PATHS = {
+            '/':         [['GET'], self.root],
+            '/vote':     [['GET'], self.vote],
+            '/ratings':  [['GET'], self.ratings],
+            '/save':     [['GET'], self.save],
+        }
+        super(RecommendationRequestHandler, self).__init__(*args, **kwargs)
 
     def vote(self, dh):
-        print("requestline:", dh.requestline)
-        dh.log_message("requestline: " + repr(dh.requestline))
+        """ Sends the client 'true' in json for valid arguments and 'false' for
+            invalid ones.
+        """
+        def error():
+            dh.wfile.write(bytes("false", 'utf8'))
+            print("--------- vote error", dh.query_string, "---------")
+            return
+
+        dh.send_response(200)
+        dh.send_header('Content-type', 'application/json')
+        dh.end_headers()
+
+        if 'direction' not in dh.query_string: error()
+        if 'id' not in dh.query_string: error()
+        if len(dh.query_string['direction']) != 1: error()
+        if len(dh.query_string['id']) != 1: error()
+
+        try:
+            direction = dh.query_string['direction'][0].lower()
+        except AttributeError:
+            error()
+
+        if direction == 'true':
+            direction = True
+        elif direction == 'false':
+            direction = False
+        else:
+            error()
+
+        try:
+            id_ = int(dh.query_string['id'][0])
+        except ValueError:
+            error()
+
+        print("-"*80)
+        print("Adding ID:", id_, "to dataset:", 'good' if direction else 'bad')
+
+        if direction:
+            post_data.dataset.good.add(id_)
+        else:
+            post_data.dataset.bad.add(id_)
+
+        print("Good:", post_data.dataset.good)
+        print("Bad:", post_data.dataset.bad)
+        print("-"*80)
+
+        dh.wfile.write(bytes("true", 'utf8'))
+
+    def save(self, dh):
+        """ Save the dataset to a file. """
+        post_data.dataset.save()
 
         dh.send_response(200)
         dh.send_header('Content-type', 'text')
         dh.end_headers()
+        dh.wfile.write(bytes("Saved!", 'utf8'))
 
-        dh.wfile.write(bytes("Got it! Thanks!\n", 'utf8'))
-
-    def make_root_page(self, dh):
+    def root(self, dh):
         doc, tag, text = yattag.Doc().tagtext()
 
         with tag('html'):
@@ -135,7 +217,7 @@ class RecommendationRequestHandler(StatefulRequestHandler):
         dh.end_headers()
         dh.wfile.write(bytes(doc.getvalue(), 'utf8'))
 
-    def make_rating_page(self, dh):
+    def ratings(self, dh):
         doc, tag, text = yattag.Doc().tagtext()
         random_post = get_random_uncategorized_post()
 
@@ -153,7 +235,10 @@ class RecommendationRequestHandler(StatefulRequestHandler):
                     text('ID#: ' + str(random_post.id))
 
                 with tag('p'):
-                    text('A (up) and Z (down) to vote.')
+                    text('A (up) and Z (down) to vote. ')
+
+                    with tag('a', href='/save'):
+                        text("Click here to save your votes.")
 
                 with tag('h1'):
                     with tag('a', href='#', onclick='upvote()'):
