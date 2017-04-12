@@ -12,46 +12,8 @@ import post_data
 This file is for interacting with the user's web browser in various ways.
 """
 
-FILENAME = 'good_posts.html'
-
-CSS = textwrap.dedent("""
-    body {
-        font-family: Arial, Helvetica, sans-serif;
-        background: #000;
-        color: #00e0e0;
-    }
-
-    a {
-        color: #00e0e0;
-    }
-
-    .post {
-        margin: 10px;
-        display: inline-table;
-        width: 30%;
-        background: #111;
-    }
-
-    .explanation {
-        font-family: "Lucida Console", Monaco, monospace;
-        padding: 0 10%;
-        margin-top: 20px;
-        margin-bottom: 20px;
-    }
-
-    .title {
-        font-size: 125%;
-        margin: 5px;
-        text-align: center;
-    }
-
-    .preview {
-        max-width: 100%;
-        margin: auto;
-        display: block;
-        height: 300px;
-    }
-""")
+with open('http_server/main.css', 'r') as css_file:
+    CSS = css_file.read()
 
 def get_random_uncategorized_post():
     """ Get a random post from the cache that has yet to be categorized
@@ -180,27 +142,6 @@ class RecommendationRequestHandler(StatefulRequestHandler):
                 with tag('style'):
                     text(CSS)
 
-            with tag('body'):
-                with tag('h1'):
-                    text('ID#: ' + str(random_post.id))
-
-                with tag('p'):
-                    text('A (up) and Z (down) to vote.')
-
-                with tag('h1'):
-                    with tag('a', href='#', id='upvote'):
-                        text('/\\')
-
-                    doc.stag('br')
-                    doc.stag('br')
-
-                    with tag('a', href='#', id='downvote'):
-                        text('\\/')
-
-                with tag('a', href=random_post.page_url):
-                    doc.stag('img', src=random_post.file_url,
-                             style="display: block;")
-
                 with tag('script', type='text/javascript'):
                     doc.asis("var post_id = " + str(random_post.id))
                     doc.asis("""
@@ -241,12 +182,6 @@ class RecommendationRequestHandler(StatefulRequestHandler):
                         function upvote()   {vote(true)}
                         function downvote() {vote(false)}
 
-                        document.getElementById('upvote').addEventListener(
-                            "click", upvote)
-
-                        document.getElementById('downvote').addEventListener(
-                            "click", downvote)
-
                         document.addEventListener('keyup', function(event){
                             if (event.key === 'a') {
                                 upvote()
@@ -256,51 +191,28 @@ class RecommendationRequestHandler(StatefulRequestHandler):
                         })
                     """)
 
+            with tag('body'):
+                with tag('h1'):
+                    text('ID#: ' + str(random_post.id))
+
+                with tag('p'):
+                    text('A (up) and Z (down) to vote.')
+
+                with tag('h1'):
+                    with tag('a', href='#', onclick='upvote()'):
+                        text('/\\')
+
+                    doc.stag('br')
+                    doc.stag('br')
+
+                    with tag('a', href='#', onclick='downvote()'):
+                        text('\\/')
+
+                with tag('a', href=random_post.page_url):
+                    doc.stag('img', src=random_post.file_url,
+                            style="height: 100%;")
+
         dh.send_response(200)
         dh.send_header('Content-type', 'text/html')
         dh.end_headers()
         dh.wfile.write(bytes(doc.getvalue(), 'utf8'))
-
-def posts_to_html(posts):
-    """ Gets an iterable of posts and turns them into HTML to display them to
-    the user, complete with preview images.
-
-    Includes a bunch of helpful info like a tag-by-tag breakdown of why each
-    post got the rating it did.
-    """
-    doc, tag, text = yattag.Doc().tagtext()
-
-    #with open(filename, 'w') as file_:
-    with tag('html'):
-        with tag('head'):
-            with tag('style'):
-                text(CSS)
-
-        with tag('body'):
-            for post in posts:
-                rating, explanation = post_rater.rate_post(post, explain=True)
-
-                with tag('div', klass='post'):
-                    with tag('a', href=post.url):
-                        with tag('h1', klass='title'):
-                            text('{rating:.0f}: {post_string}'.format(
-                                rating=rating, post_string=str(post)))
-                            doc.stag('br')
-
-                        doc.stag('img', klass='preview', src=post.preview_url)
-                        doc.stag('br')
-
-                    with tag('div', klass='explanation'):
-                        for line in explanation.split('\n'):
-                            text(line)
-                            doc.stag('br')
-
-    return doc.getvalue()
-
-def posts_to_browser(posts):
-    html = posts_to_html(posts)
-
-    with open(FILENAME, 'w') as file_:
-        file_.write(html)
-
-    webbrowser.open('file://' + os.getcwd() + os.sep + FILENAME)
