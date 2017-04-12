@@ -3,16 +3,7 @@ import webbrowser
 import hypnohub_communication as hhcom
 import naive_bayes
 import post_data
-
-def get_random_uncategorized_post():
-    """ Get a random post from the cache that has yet to be categorized
-        into either 'good' or 'bad'.
-    """
-    randomly_sorted_posts = [
-        i for i in post_data.dataset.all_posts.values()
-        if i.id not in self.good and i.id not in self.bad]
-
-    return random.choice(randomly_sorted_posts)
+import http_server
 
 if __name__ == '__main__':
     classifier = naive_bayes.NaiveBayesClassifier(
@@ -21,7 +12,7 @@ if __name__ == '__main__':
 
     try:
         while True:
-            random_post = get_random_uncategorized_post()
+            random_post = http_server.get_random_uncategorized_post()
             webbrowser.open(random_post.page_url)
 
             while True:
