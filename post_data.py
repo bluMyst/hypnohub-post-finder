@@ -1,3 +1,5 @@
+import os
+
 import hypnohub_communication as hhcom
 
 """
@@ -75,7 +77,7 @@ class SimplePost(object):
         try:
             self.file_url = 'http:' + get_data('file_url')
             self.author   = get_data('author')
-        except AttributeError, KeyError:
+        except (AttributeError, KeyError):
             self.file_url, self.author = None, None
 
         assert self.rating in 'sqe'

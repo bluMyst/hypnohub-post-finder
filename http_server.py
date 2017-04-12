@@ -3,8 +3,10 @@ import textwrap
 import os
 import webbrowser
 import http.server
+import random
 
 import post_rater
+import post_data
 
 """
 This file is for interacting with the user's web browser in various ways.
@@ -50,6 +52,16 @@ CSS = textwrap.dedent("""
         height: 300px;
     }
 """)
+
+def get_random_uncategorized_post():
+    """ Get a random post from the cache that has yet to be categorized
+        into either 'good' or 'bad'.
+    """
+    randomly_sorted_posts = [
+        i for i in post_data.dataset.cache.values()
+        if i.id not in self.good and i.id not in self.bad]
+
+    return random.choice(randomly_sorted_posts)
 
 class StatefulRequestHandler(object):
     """
@@ -100,9 +112,6 @@ class StatefulRequestHandler(object):
         raise NotImplementedError
 
 class RecommendationRequestHandler(StatefulRequestHandler):
-    def __init__(self, *args, **kwargs):
-        super(RecommendationRequestHandler, self).__init__(*args, **kwargs)
-
     def do_GET(self, dh):
         if dh.client_address[0] != '127.0.0.1':
             dh.send_error(403, explain="Only serving 127.0.0.1, not "
@@ -152,6 +161,13 @@ class RecommendationRequestHandler(StatefulRequestHandler):
                 with tag('p'):
                     text("This will be the rating page once I get stuff "
                          "working.")
+
+                    random_post = get_random_uncategorized_post()
+
+                    with tag('h'):
+                        text('ID#: ' + str(random_post.id))
+
+                    tag(img, src=random_post.preview_url)
 
         dh.send_response(200)
         dh.send_header('Content-type', 'text/html')
