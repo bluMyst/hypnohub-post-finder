@@ -115,6 +115,8 @@ class StatefulRequestHandler(object):
         raise NotImplementedError
 
 class RecommendationRequestHandler(StatefulRequestHandler):
+    # TODO: Parse URL's properly! dh.path includes all the ?foo=bar&bar=baz
+    #       urllib.parse
     def do_GET(self, dh):
         if dh.client_address[0] != '127.0.0.1':
             dh.send_error(403, explain="Only serving 127.0.0.1, not "
@@ -125,13 +127,27 @@ class RecommendationRequestHandler(StatefulRequestHandler):
             self.make_root_page(dh)
         elif dh.path == '/ratings':
             self.make_rating_page(dh)
+        elif dh.path == '/vote':
+            dh.send_error(501)
         else:
             dh.send_error(404)
             return
 
     def do_POST(self, dh):
-        # This is probably a horrible idea.
-        self.do_GET(dh)
+        if dh.path.startswith('/vote'):
+            self.vote(dh)
+        else:
+            dh.send_error(501)
+
+    def vote(self, dh):
+        print("requestline:", dh.requestline)
+        dh.log_message("requestline: " + repr(dh.requestline))
+
+        dh.send_response(200)
+        dh.send_header('Content-type', 'text')
+        dh.end_headers()
+
+        dh.wfile.write(bytes("Got it! Thanks!\n", 'utf8'))
 
     def make_root_page(self, dh):
         doc, tag, text = yattag.Doc().tagtext()
@@ -143,9 +159,12 @@ class RecommendationRequestHandler(StatefulRequestHandler):
 
             with tag('body'):
                 with tag('p'):
-                    text("Loading... (not really)")
-                    text(str(self.test_counter))
-                    self.test_counter += 1
+                    text("You probably want to go to the ")
+
+                    with tag('a', href='ratings'):
+                        text('ratings page')
+
+                    text(".")
 
         dh.send_response(200)
         dh.send_header('Content-type', 'text/html')
@@ -154,6 +173,7 @@ class RecommendationRequestHandler(StatefulRequestHandler):
 
     def make_rating_page(self, dh):
         doc, tag, text = yattag.Doc().tagtext()
+        random_post = get_random_uncategorized_post()
 
         with tag('html'):
             with tag('head'):
@@ -161,18 +181,80 @@ class RecommendationRequestHandler(StatefulRequestHandler):
                     text(CSS)
 
             with tag('body'):
-                with tag('p'):
-                    text("This will be the rating page once I get stuff "
-                         "working.")
-
-                random_post = get_random_uncategorized_post()
-
                 with tag('h1'):
                     text('ID#: ' + str(random_post.id))
+
+                with tag('p'):
+                    text('A (up) and Z (down) to vote.')
+
+                with tag('h1'):
+                    with tag('a', href='#', id='upvote'):
+                        text('/\\')
+
+                    doc.stag('br')
+                    doc.stag('br')
+
+                    with tag('a', href='#', id='downvote'):
+                        text('\\/')
 
                 with tag('a', href=random_post.page_url):
                     doc.stag('img', src=random_post.file_url,
                              style="display: block;")
+
+                with tag('script', type='text/javascript'):
+                    doc.asis("var post_id = " + str(random_post.id))
+                    doc.asis("""
+                        var has_voted = false
+
+                        function vote(direction) {
+                            // direction == true: upvote
+                            // direction == false: downvote
+                            if (!has_voted) {
+                                var confirmation = confirm(
+                                    "Want to "
+                                    + (direction ? 'upvote' : 'downvote')
+                                    + " the current image?"
+                                )
+
+                                if (!confirmation) { return }
+
+                                has_voted = true
+
+                                var oReq = new XMLHttpRequest()
+                                oReq.addEventListener("load",
+                                    function(){
+                                        alert('Voted: ' + direction.toString())
+                                        location.reload()
+                                    }
+                                )
+
+                                oReq.open(
+                                    "POST",
+                                    "/vote?direction=" + direction.toString()
+                                    + "&id=" + post_id.toString()
+                                )
+
+                                oReq.send()
+                            }
+                        }
+
+                        function upvote()   {vote(true)}
+                        function downvote() {vote(false)}
+
+                        document.getElementById('upvote').addEventListener(
+                            "click", upvote)
+
+                        document.getElementById('downvote').addEventListener(
+                            "click", downvote)
+
+                        document.addEventListener('keyup', function(event){
+                            if (event.key === 'a') {
+                                upvote()
+                            } else if (event.key === 'z') {
+                                downvote()
+                            }
+                        })
+                    """)
 
         dh.send_response(200)
         dh.send_header('Content-type', 'text/html')
