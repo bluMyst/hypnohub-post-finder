@@ -238,6 +238,8 @@ def split_dataset(dataset, split_ratio=0.33):
 
     Split ratio: What portion is used for training data?
     """
+    # I definitely won't be using this as-is, but it's nice to have as a
+    # reference for later.
     train_size = math.round(len(dataset) * split_ratio)
 
     copy = dataset[:]
