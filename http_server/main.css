@@ -8,29 +8,6 @@ a {
     color: #00e0e0;
 }
 
-.post {
-    margin: 10px;
-    display: inline-table;
-    width: 30%;
-    background: #111;
-}
-
-.explanation {
-    font-family: "Lucida Console", Monaco, monospace;
-    padding: 0 10%;
-    margin-top: 20px;
-    margin-bottom: 20px;
-}
-
-.title {
-    font-size: 125%;
-    margin: 5px;
-    text-align: center;
-}
-
-.preview {
-    max-width: 100%;
-    margin: auto;
-    display: block;
-    height: 300px;
+.rating_image {
+    height: 100%;
 }

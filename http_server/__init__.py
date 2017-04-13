@@ -241,18 +241,21 @@ class RecommendationRequestHandler(AhtoRequestHandler):
                         text("Click here to save your votes.")
 
                 with tag('h1'):
-                    with tag('a', href='#', onclick='upvote()'):
-                        text('/\\')
+                    with tag('div', klass='vote_controls'):
+                        with tag('a', href='#', klass='upvote',
+                                onclick='upvote()'):
+                            text('/\\')
 
-                    doc.stag('br')
-                    doc.stag('br')
+                        doc.stag('br')
+                        doc.stag('br')
 
-                    with tag('a', href='#', onclick='downvote()'):
-                        text('\\/')
+                        with tag('a', href='#', klass='downvote',
+                                onclick='downvote()'):
+                            text('\\/')
 
                 with tag('a', href=random_post.page_url):
                     doc.stag('img', src=random_post.file_url,
-                            style="height: 100%;")
+                            klass="rating_image")
 
         dh.send_response(200)
         dh.send_header('Content-type', 'text/html')
