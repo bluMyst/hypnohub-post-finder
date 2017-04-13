@@ -1,4 +1,3 @@
-import bs4
 import requests
 import time
 import os
@@ -7,6 +6,7 @@ import pickle
 import random
 import sys
 import post_data
+import json
 
 import ahto_lib
 
@@ -42,10 +42,8 @@ def get_posts(tags= None, page=None, limit=None):
 
     # lxml won't install on my system so I have to use an html parser on
     # xml. Trust me: it's better than the hack I was using before.
-    xml = requests.get("http://hypnohub.net/post/index.xml", params=params)
-    soup = bs4.BeautifulSoup(xml.text, 'html.parser')
-
-    return soup.find_all('post')
+    response = requests.get("http://hypnohub.net/post/index.json", params=params)
+    return json.loads(response.text)
 
 def get_simple_posts(*args, **kwargs):
     """ Like get_posts, except the posts are automatically converted into
