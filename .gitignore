@@ -1,7 +1,7 @@
 # Script-generated files:
 bad_posts.html
 good_posts.html
-*.pickle
+cache.pickle
 
 # Python stuff.
 *.pyc

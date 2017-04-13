@@ -107,31 +107,33 @@ class Dataset(object):
             ...
         }
     """
-    FILENAME = "dataset.pickle"
+    DATASET = "dataset.pickle"
+    CACHE   = "cache.pickle"
 
     def __init__(self):
-        if os.path.isfile(self.FILENAME):
-            with open(self.FILENAME, 'rb') as data_file:
-                raw_dataset = pickle.load(data_file)
+        if os.path.isfile(self.DATASET):
+            with open(self.DATASET, 'rb') as f:
+                raw_dataset = pickle.load(f)
 
             self.good = raw_dataset['good']
             self.bad = raw_dataset['bad']
-
-            self.cache = raw_dataset['cache']
         else:
             self.good = set()
             self.bad = set()
+
+        if os.path.isfile(self.CACHE):
+            with open(self.CACHE, 'rb') as f:
+                self.cache = pickle.load(f)
+        else:
             self.cache = {}
 
     def save(self):
         """ Save dataset back to pickle file. """
-        raw_dataset = {
-            'good': self.good,
-            'bad': self.bad,
-            'cache': self.cache}
+        with open(self.DATASET, 'wb') as f:
+            pickle.dump({'good': self.good, 'bad': self.bad}, f)
 
-        with open(self.FILENAME, 'wb') as data_file:
-            pickle.dump(raw_dataset, data_file)
+        with open(self.CACHE, 'wb') as f:
+            pickle.dump(self.cache, f)
 
     def get_highest_post(self):
         if len(self.all_posts) == 0:
