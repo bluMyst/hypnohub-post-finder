@@ -1,5 +1,7 @@
 import os
 import pickle
+import sys
+import random
 
 import hypnohub_communication as hhcom
 
@@ -45,41 +47,51 @@ class SimplePost(object):
         """
         data = {
             'id': "1337",
-            'tags': 'tag_1 tag_2 tag_3',
+
+            # These are optional, but a post without them will be assumed to be
+            # deleted.
             'score': "1337",
             'rating': "s",
             'preview_url': "//foo/foo.png",
-
-            # These two are optional, but a post without them will be assumed
-            # to be deleted.
+            'tags': 'tag_1 tag_2 tag_3',
             'author': "foo",
             'file_url': "//foo/foo.png",
         }
 
-        Or it can be an object with those as attributes.
+        Or it can be an object with those as attributes, or even a
+        BeautifulSoup of Hypnohub's response XML!
 
         It's also okay, if the post is deleted, to not include 'author' or
         'file_url'.
         """
         self._data = dict()
+        self.deleted = False
 
-        if hasattr(data, 'tags') and isinstance(data.tags, str):
+        if 'id' in data:
+            get_data = lambda k: data[k]
+        elif hasattr(data, 'id'):
             get_data = lambda k: getattr(data, k)
         else:
-            get_data = lambda k: data[k]
+            raise ValueError("data has no id.")
+
+        def safe_get_data(key, postprocessing=lambda x: x, default=None):
+            try:
+                data = get_data(key)
+            except (AttributeError, KeyError):
+                self.deleted = True
+                return default
+
+            return postprocessing(data)
 
         self.id          = int(get_data('id'))
-        self.tags        = get_data('tags').split(' ')
-        self.score       = int(get_data('score'))
-        self.rating      = get_data('rating')
-        self.preview_url = 'http:' + get_data('preview_url')
-        self.page_url    = 'http://hypnohub.net/post/show/' + str(self.id) + '/'
+        self.rating      = safe_get_data('rating')
+        self.author      = safe_get_data('author')
+        self.score       = safe_get_data('score',       int)
+        self.preview_url = safe_get_data('preview_url', lambda x: 'http:' + x)
+        self.file_url    = safe_get_data('file_url',    lambda x: 'http:' + x)
+        self.tags        = safe_get_data('tags',        lambda x: x.split(' '))
 
-        try:
-            self.file_url = 'http:' + get_data('file_url')
-            self.author   = get_data('author')
-        except (AttributeError, KeyError):
-            self.file_url, self.author = None, None
+        self.page_url = 'http://hypnohub.net/post/show/' + str(self.id) + '/'
 
         assert self.rating in 'sqe'
 
@@ -89,9 +101,6 @@ class SimplePost(object):
     def __str__(self):
         return ("#{self.id} +{self.score} by {self.author}").format(
             **locals())
-
-    def deleted(self):
-        return self.file_url is None or self.author is None
 
 class Dataset(object):
     """ Tracks the posts that the user has liked and disliked. Stores them in a
@@ -136,10 +145,10 @@ class Dataset(object):
             pickle.dump(self.cache, f)
 
     def get_highest_post(self):
-        if len(self.all_posts) == 0:
-            self.highest_post = 0
+        if len(self.cache) == 0:
+            return 0
         else:
-            self.highest_post = max(self.all_posts.keys())
+            return max(self.cache.keys())
 
     def get_id(self, id_):
         """ Get a post from the cache by post id.
@@ -147,7 +156,7 @@ class Dataset(object):
             Returns None if the post doesn't exist.
         """
         try:
-            return self.all_posts[id_]
+            return self.cache[id_]
         except KeyError:
             return None
 
@@ -164,9 +173,9 @@ class Dataset(object):
         return map(self.get_id, self.bad)
 
     def update_cache(self, print_progress=True):
-        new_posts = hhcom.get_simple_posts(
+        new_posts = list(hhcom.get_simple_posts(
             tags="order:id id:>" + str(self.get_highest_post()),
-            limit=100)
+            limit=100))
 
         if len(new_posts) == 0:
             return
@@ -177,18 +186,18 @@ class Dataset(object):
             sys.stdout.flush()
 
         for post in new_posts:
-            if post['status'] != 'deleted':
-                self.cache[post.id] = SimplePost(post)
+            if not post.deleted:
+                self.cache[post.id] = post
 
         if print_progress:
-            print('-', len(self.all_posts), 'stored')
+            print('-', len(self.cache), 'stored')
 
         self.update_cache(print_progress)
 
 # There should only ever be one of these, since the data is pickled.
 dataset = Dataset()
 
-def validate_cache(self, sample_size=300, print_progress=True):
+def validate_cache(sample_size=300, print_progress=True):
     """ Make sure there aren't any gaps in the post ID's, except for gaps
         that hypnohub naturally has. (Try searching for "id:8989")
 
@@ -215,7 +224,7 @@ def validate_cache(self, sample_size=300, print_progress=True):
     highest_post = dataset.get_highest_post()
 
     ids_and_existance = [
-        (i, (i in dataset.all_posts)) for i in range(1, highest_post+1)]
+        (i, (i in dataset.cache)) for i in range(1, highest_post+1)]
 
     if sample_size is None or sample_size >= len(ids_and_existance):
         random.shuffle(ids_and_existance)
@@ -231,7 +240,17 @@ def validate_cache(self, sample_size=300, print_progress=True):
                   end=' ')
             sys.stdout.flush()
 
-        if len(hhcom.get_posts("id:" + str(id_))) != int(exists):
+        post_data = list(hhcom.get_simple_posts("id:" + str(id_)))
+
+        if len(post_data) == 0:
+            deleted = True
+        elif len(post_data) == 1:
+            deleted = post_data[0].deleted
+        else:
+            assert False, ("Something went wrong when trying to communicate "
+                           "with Hypnohub and it's probably their fault.")
+
+        if deleted == exists:
             if exists:
                 raise Exception("Post #" + str(id_) + " doesn't exist but "
                                 "it's in our cache.")
