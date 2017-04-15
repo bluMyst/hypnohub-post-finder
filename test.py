@@ -1,9 +1,3 @@
-import requests
-import bs4
-import pickle
-import webbrowser
-
-import hypnohub_communication as hhcom
 import http_server
 
 if __name__ == '__main__':

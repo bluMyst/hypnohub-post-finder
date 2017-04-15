@@ -9,5 +9,22 @@ a {
 }
 
 .rating_image {
-    height: 100%;
+    width: 95%;
+}
+
+.vote_controls {
+    float: left;
+    background: #222;
+    width: 5%;
+    text-align: center;
+}
+
+.vote {
+    display: block;
+    text-decoration: none;
+    font-size: 4em;
+}
+
+.upvote {
+    margin-bottom: 0.5em;
 }

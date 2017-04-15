@@ -1,6 +1,7 @@
 import sys
 
 import post_data
+import http_server
 
 """
 Takes a command from sys.argv. Basically a low-level CLI frontend to the rest
@@ -11,8 +12,11 @@ def usage():
     print("Usage:", sys.argv[0], "<command>")
     print()
     print("Possible commands:",
-          "- u[pdate]: update post_data.dataset",
-          "- v[alidate] <sample_size>: validate up to sample_size cache items",
+          "- u[pdate]: update cache",
+          "- v[alidate] [sample_size=300]: validate up to sample_size cache items",
+          "- s[erve]: start serving http.",
+          "- v[otes]: show your current vote data",
+          "- r[eset_cache]: remove everything from the cache",
           sep='\n')
 
 if __name__ == '__main__':
@@ -38,6 +42,24 @@ if __name__ == '__main__':
 
         post_data.validate_cache(sample_size, print_progress=True)
         exit(0)
+    elif command in ['s', 'serve']:
+        server_address = ('127.0.0.1', 8000)
+        print("Serving on:",
+              "http://" + server_address[0] + ':' + str(server_address[1]) + '/')
+        try:
+            handler = http_server.RecommendationRequestHandler(server_address)
+            handler.server.serve_forever()
+        except KeyboardInterrupt:
+            exit(0)
+
+        exit(1) # Shouldn't ever be called.
+    elif command in ['v', 'votes']:
+        print("Good:", post_data.dataset.good)
+        print("Bad:", post_data.dataset.bad)
+        exit(0)
+    elif command in ['r', 'reset_cache']:
+        post_data.dataset.cache = {}
+        post_data.dataset.save()
     else:
         usage()
         exit(1)

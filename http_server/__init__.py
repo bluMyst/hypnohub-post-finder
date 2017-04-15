@@ -172,23 +172,23 @@ class RecommendationRequestHandler(AhtoRequestHandler):
         except ValueError:
             error()
 
-        print("-"*80)
-        print("Adding ID:", id_, "to dataset:", 'good' if direction else 'bad')
+        dh.log_message("Adding ID: " + str(id_) + " to dataset: "
+                       + ('good' if direction else 'bad'))
 
         if direction:
             post_data.dataset.good.add(id_)
         else:
             post_data.dataset.bad.add(id_)
 
-        print("Good:", post_data.dataset.good)
-        print("Bad:", post_data.dataset.bad)
-        print("-"*80)
-
         dh.wfile.write(bytes("true", 'utf8'))
 
     def save(self, dh):
         """ Save the dataset to a file. """
         post_data.dataset.save()
+        dh.log_message("Saved dataset with good:"
+                       + str(len(post_data.dataset.good))
+                       + " and bad:"
+                       + str(len(post_data.dataset.bad)))
 
         dh.send_response(200)
         dh.send_header('Content-type', 'text')
@@ -240,22 +240,19 @@ class RecommendationRequestHandler(AhtoRequestHandler):
                     with tag('a', href='/save'):
                         text("Click here to save your votes.")
 
-                with tag('h1'):
+                with tag('div', klass='voting_area'):
                     with tag('div', klass='vote_controls'):
-                        with tag('a', href='#', klass='upvote',
+                        with tag('a', href='#', klass='vote upvote',
                                 onclick='upvote()'):
                             text('/\\')
 
-                        doc.stag('br')
-                        doc.stag('br')
-
-                        with tag('a', href='#', klass='downvote',
+                        with tag('a', href='#', klass='vote downvote',
                                 onclick='downvote()'):
                             text('\\/')
 
-                with tag('a', href=random_post.page_url):
-                    doc.stag('img', src=random_post.file_url,
-                            klass="rating_image")
+                    with tag('a', href=random_post.page_url):
+                        doc.stag('img', src=random_post.sample_url,
+                                klass="rating_image")
 
         dh.send_response(200)
         dh.send_header('Content-type', 'text/html')
