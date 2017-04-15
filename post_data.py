@@ -110,23 +110,22 @@ class SimplePost(object):
         return True
 
     def __repr__(self):
-        return ("<SimplePost #{self.id}>").format(**locals())
+        return f"<SimplePost #{self.id}>"
 
     def __str__(self):
-        return ("#{self.id} +{self.score} by {self.author}").format(
-            **locals())
+        return f"#{self.id} +{self.score} by {self.author}")
 
     def _get_url(self, name, url_name=None):
         if url_name is None:
             url_name = name
 
-        url = "http://hypnohub.net/data/" + url_folder + '/' + self.md5 + '.'
-        url += getattr(self, name + '_url_ext')
+        url = f"http://hypnohub.net/data/{url_folder}/{self.md5}."
+        url += getattr(self, f'{name}_url_ext')
         return url
 
     @property
     def page_url(self):
-        return "http://hypnohub.net/post/show/" + str(self.id) + "/"
+        return f"http://hypnohub.net/post/show/{self.id}/"
 
 class Dataset(object):
     """ Tracks the posts that the user has liked and disliked. Stores them in a
@@ -241,7 +240,7 @@ def validate_single_post(id_, print_progress=True):
     assert not dataset.get_id(id_).deleted
 
     if dataset.get_id(id_) != post_data[0]:
-        raise Exception("Post #" + str(id_) + " differs from the cached version.")
+        raise Exception(f"Post #{id_} differs from the cached version.")
 
 def validate_cache(sample_size=300, print_progress=True):
     """ Make sure there aren't any gaps in the post ID's, except for gaps
