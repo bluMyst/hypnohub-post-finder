@@ -49,8 +49,10 @@ class SimplePost(object):
     50,000 other SimplePosts.
     """
 
-    FIELDS_STORED = {'id', 'rating', 'author', 'score', 'tags', 'md5',
-                     'file_url', 'preview_url', 'sample_url', 'jpeg_url'}
+    FIELDS_USED = {'id', 'rating', 'author', 'score', 'tags', 'md5',
+                   'file_url', 'preview_url', 'sample_url', 'jpeg_url'}
+
+    FIELDS_STORED = FIELDS_USED - {'jpeg_url'}
 
     def __init__(self, data):
         """
@@ -76,7 +78,7 @@ class SimplePost(object):
 
         self.id = int(data['id'])
 
-        if any((i not in data) for i in self.FIELDS_STORED):
+        if any((i not in data) for i in self.FIELDS_USED):
             self.deleted = True
             return
 
@@ -222,22 +224,24 @@ class Dataset(object):
 # There should only ever be one of these, since the data is pickled.
 dataset = Dataset()
 
-def validate_single_post(id_, missing, print_progress=True):
+def validate_single_post(id_, print_progress=True):
     post_data = list(hhcom.get_simple_posts("id:" + str(id_)))
 
-    if len(post_data) == 0 and not missing:
-        raise Exception("Post #" + str(id_) + " is missing but "
-                        "it's in our cache.")
-    elif len(post_data) == 1 and missing:
-        raise Exception("Post #" + str(id_) + " exists even though "
-                        "we have no record of it in the cache.")
-    else:
-        # Multiple posts with the same ID?
+    cache_deleted = id_ not in dataset.cache or dataset.get_id(id_).deleted
+    post_deleted  = len(post_data) == 0 or post_data[0].deleted
+
+    if len(post_data) < 0 or len(post_data) > 1:
         assert False, ("Something went wrong when trying to communicate "
-                       "with Hypnohub and it's probably their fault.")
+                       "with Hypnohub and it's probably their fault.",
+                       len(post_data))
+    elif cache_deleted != post_deleted:
+        raise Exception(id_, cache_deleted, post_deleted)
+
+    if id_ not in dataset.cache: return
+    assert not dataset.get_id(id_).deleted
 
     if dataset.get_id(id_) != post_data[0]:
-        raise Exception("Post #" + str(id_) + "differs from the cached version.")
+        raise Exception("Post #" + str(id_) + " differs from the cached version.")
 
 def validate_cache(sample_size=300, print_progress=True):
     """ Make sure there aren't any gaps in the post ID's, except for gaps
@@ -264,20 +268,18 @@ def validate_cache(sample_size=300, print_progress=True):
 
     highest_post = dataset.get_highest_post()
 
-    # [(id, missing), (id, missing), ...]
-    ids_and_missing = [
-        (i, (i in dataset.cache)) for i in range(1, highest_post+1)]
+    ids = list(range(1, highest_post+1))
 
-    if sample_size is None or sample_size >= len(ids_and_missing):
-        random.shuffle(ids_and_missing)
-        sample = ids_and_missing
+    if sample_size is None or sample_size >= len(ids):
+        random.shuffle(ids)
+        sample = ids
         sample_size = len(sample)
     else:
-        sample = random.sample(ids_and_missing, sample_size)
+        sample = random.sample(ids, sample_size)
 
-    for i, (id_, missing) in enumerate(sample):
+    for i, id_ in enumerate(sample):
         if print_progress:
             print('[', i+1, '/', sample_size, ']', sep='', end=' ')
             print('Checking ID#', id_)
 
-        validate_single_post(id_, missing, print_progress)
+        validate_single_post(id_, print_progress)

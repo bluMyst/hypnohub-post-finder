@@ -126,8 +126,6 @@ class AhtoRequestHandler(StatefulRequestHandler):
     do_POST = do_GET = do_POST_and_GET
 
 class RecommendationRequestHandler(AhtoRequestHandler):
-    # TODO: Parse URL's properly! dh.path includes all the ?foo=bar&bar=baz
-    #       urllib.parse
     def __init__(self, *args, **kwargs):
         self.PATHS = {
             '/':         [['GET'], self.root],
