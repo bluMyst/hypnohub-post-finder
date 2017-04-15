@@ -45,7 +45,7 @@ if __name__ == '__main__':
     elif command in ['s', 'serve']:
         server_address = ('127.0.0.1', 8000)
         print("Serving on:",
-              "http://" + server_address[0] + ':' + str(server_address[1]) + '/')
+              f"http://{server_address[0]}:{server_address[1]/")
         try:
             handler = http_server.RecommendationRequestHandler(server_address)
             handler.server.serve_forever()
