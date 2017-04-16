@@ -29,8 +29,9 @@ if __name__ == '__main__':
     command = sys.argv[1].lower()
 
     if command in ['u', 'update']:
-        post_data.dataset.update_cache(print_progress=True)
-        post_data.dataset.save()
+        dataset = post_data.Dataset()
+        dataset.update_cache(print_progress=True)
+        dataset.save()
     elif command in ['v', 'validate']:
         try:
             sample_size = int(sys.argv[2])
@@ -53,15 +54,23 @@ if __name__ == '__main__':
         else:
             exit(1) # Just in case .serve_forever() fails somehow.
     elif command in ['v', 'votes']:
-        print("Good:", post_data.dataset.good)
-        print("Bad:", post_data.dataset.bad)
+        dataset = post_data.Dataset()
+        print("Good:", dataset.good)
+        print("Bad:", dataset.bad)
     elif command in ['r', 'reset_cache']:
-        post_data.dataset.cache = {}
-        post_data.dataset.save()
-    elif command in ['n', 'naive_show']:
-        nbc = naive_bayes.naive_bayes_classifier
+        dataset = post_data.Dataset()
 
-        for tag, (good, total) in nbc.tag_history.items():
+        if input("Reset cache? Are you sure? [yN]").lower() != 'y':
+            print("Your cache is safe!")
+            exit(0)
+
+        print("Erasing cache...")
+        dataset.cache = {}
+        dataset.save()
+    elif command in ['n', 'naive_show']:
+        nbc = naive_bayes.NaiveBayesClassifier.from_dataset(post_data.Dataset())
+
+        for tag, (good, total) in list(nbc.tag_history.items())[-100:]:
             predict = nbc.predict([tag])
 
             if predict > 0:

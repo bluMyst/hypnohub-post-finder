@@ -11,6 +11,8 @@ import hypnohub_communication as hhcom
 Classes for storing data on Hypnohub posts.
 """
 
+# TODO: Import my votes into the dataset.
+
 # response XML looks like this:
 # <posts count="1337" offset="# posts skipped by page">
 #   <post
@@ -223,9 +225,6 @@ class Dataset(object):
             print('-', len(self.cache), 'stored')
 
         self.update_cache(print_progress)
-
-# There should only ever be one of these, since the data is pickled.
-dataset = Dataset()
 
 def validate_single_post(id_, print_progress=True):
     post_data = list(hhcom.get_simple_posts("id:" + str(id_)))

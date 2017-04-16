@@ -18,17 +18,22 @@ Hypnohub's responses.
 http://hypnohub.net/help/api
 """
 
-# Make sure we're actually allowed to use these functions.
-rp = urllib.robotparser.RobotFileParser()
-rp.set_url("http://hypnohub.net/robots.txt")
-rp.read()
-if (not rp.can_fetch(BASE_USERAGENT, "hypnohub.net/post/index.json")
-        or not rp.can_fetch(BASE_USERAGENT, "hypnohub.net/post/index.xml")):
-    raise EnvironmentError("robots.txt disallowed us")
-
 cfg = configparser.ConfigParser()
 cfg.read('config.cfg')
 DELAY = cfg['HTTP Requests'].getfloat('Delay Between Requests')
+
+# Sending network requests can be slooow! Only do it when we for sure need to.
+@ahto_lib.lazy_function
+def check_robots_txt():
+    rp = urllib.robotparser.RobotFileParser(
+            "http://hypnohub.net/robots.txt")
+
+    rp.read()
+    time.sleep(DELAY)
+
+    if (not rp.can_fetch(BASE_USERAGENT, "hypnohub.net/post/index.json")
+            or not rp.can_fetch(BASE_USERAGENT, "hypnohub.net/post/index.xml")):
+        raise EnvironmentError("robots.txt disallowed us!")
 
 def get_posts(tags=None, page=None, limit=None):
     """
@@ -37,8 +42,7 @@ def get_posts(tags=None, page=None, limit=None):
     Remember that this won't be in any particular order unless you ask for
     order:id or something like that.
     """
-
-    time.sleep(DELAY)
+    check_robots_txt()
 
     params = {}
     if page is not None:
@@ -52,6 +56,8 @@ def get_posts(tags=None, page=None, limit=None):
 
     response = requests.get("http://hypnohub.net/post/index.json",
                             params=params, headers={'User-agent': USERAGENT})
+
+    time.sleep(DELAY)
 
     return json.loads(response.text)
 

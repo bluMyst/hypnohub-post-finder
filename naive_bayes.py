@@ -31,6 +31,9 @@ class NaiveBayesClassifier(object):
     Give it some Post's with tags and it'll try to guess which ones you'll like
     in the future.
 
+    Don't expect this class to always have predictions <= 1.0. The naive
+    assumption fucks with the numbers a lot and it can get crazy high.
+
     How it works:
 
     Bayes's Theorem says, given evidence E and a state we're interested in S:
@@ -84,51 +87,8 @@ class NaiveBayesClassifier(object):
 
     P(G | T0 ^ T1 ^ ... ^ Tn) = TGP * P(G) / TP
     """
-    # OH MY GOD I FIGURED IT OUT. The naive assumption is what's fucking
-    # everything up. The numbers it gives are still good. It's just that the
-    # math isn't perfect because we intentionally made an assumption that isn't
-    # true.
 
-    # TODO: I did something wrong, here. TP gets insanely small which causes
-    # predict() to output super high numbers.
-    #
-    # EDIT: What the fuuuuuucckkk!
-    # Loading cache... done.
-    # P(T|G) = 0.75
-    # P(T)   = 0.8108108108108109
-    # femsub : tgp *= 0.9249999999999999 : 0.9249999999999999
-    # P(T|G) = 0.25
-    # P(T)   = 0.3783783783783784
-    # text : tgp *= 0.6607142857142857 : 0.6111607142857143
-    # P(T|G) = 0.25
-    # P(T)   = 0.013513513513513514
-    # diaper : tgp *= 18.5 : 11.306473214285715
-    # P(T|G) = 0.25
-    # P(T)   = 0.14864864864864866
-    # femdom : tgp *= 1.6818181818181817 : 19.01543222402597
-    # 1.0278612012987012 #40237 +9 by Sleepyhead97
-    # PS> python
-    # Python 3.6.1 (v3.6.1:69c0db5, Mar 21 2017, 17:54:52) [MSC v.1900 32 bit (Intel)] on win32
-    # Type "help", "copyright", "credits" or "license" for more information.
-    # >>> import naive_bayes
-    # >>> nbc = naive_bayes.naive_bayes_classifier
-    # >>> nbc.tag_history['diaper']
-    # [1, 1]
-    # >>> nbc.p_t('diaper')
-    # 0.013513513513513514
-    # >>> nbc.p_t_g('diaper')
-    # 0.25
-    # >>> nbc.ngood
-    # 4
-    # >>> nbc.p_g
-    # 0.05405405405405406
-    # >>> nbc.p_t_g('diaper') / nbc.p_t('diaper')
-    # 18.5
-    # >>> _ * nbc.p_g
-    # 1.0
-    # >>> exit()
-    def __init__(self, good_posts: List[List[str]], bad_posts: List[List[str]],
-            auto_calculate=True):
+    def __init__(self, good_posts: List[List[str]], bad_posts: List[List[str]]):
         self.good_posts = list(good_posts)
         self.bad_posts  = list(bad_posts)
 
@@ -140,8 +100,14 @@ class NaiveBayesClassifier(object):
         # {'tag_name': [good_posts, total_posts], ...}
         self.tag_history = dict()
 
-        if auto_calculate:
-            self.calculate()
+        self.calculate()
+
+    @classmethod
+    def from_dataset(cls, dataset: post_data.Dataset, *args, **kwargs):
+        """ Alternative constructor. All * and ** args passed to __init__"""
+        good_posts = [i.tags for i in dataset.get_good()]
+        bad_posts  = [i.tags for i in dataset.get_bad()]
+        return cls(good_posts, bad_posts, *args, **kwargs)
 
     def _add_tags(self, post: List[str], is_good: bool):
         for tag in post:
@@ -208,11 +174,6 @@ class NaiveBayesClassifier(object):
                 print(tag, ": temp *=", self.p_t_g(tag) / self.p_t(tag), ':', temp)
 
         return temp
-
-good_tags = [i.tags for i in post_data.dataset.get_good()]
-bad_tags  = [i.tags for i in post_data.dataset.get_bad()]
-naive_bayes_classifier = NaiveBayesClassifier(good_tags, bad_tags)
-del good_tags, bad_tags
 
 def split_dataset(dataset, split_ratio=0.33):
     """

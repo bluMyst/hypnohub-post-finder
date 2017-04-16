@@ -8,6 +8,7 @@ import urllib.parse
 import functools
 
 import post_data
+import ahto_lib
 
 """
 This file is for interacting with the user's web browser in various ways.
@@ -19,16 +20,16 @@ with open('http_server/main.css', 'r') as css_file:
 with open('http_server/vote.js', 'r') as vote_js_file:
     VOTE_JS = vote_js_file.read()
 
-def get_random_uncategorized_post():
-    """ Get a random post from the cache that has yet to be categorized
-        into either 'good' or 'bad'.
+def get_random_uncategorized_post(dataset):
+    """ Get a random post from the cache that has yet to be categorized into
+    either 'good' or 'bad'.
 
-        Raises an IndexError if the post cache is empty.
+    Raises an IndexError if the post cache is empty.
     """
     randomly_sorted_posts = [
-        i for i in post_data.dataset.cache.values()
-        if i.id not in post_data.dataset.good
-        and i.id not in post_data.dataset.bad]
+        i for i in dataset.get_all()
+        if i.id not in dataset.good
+        and i.id not in dataset.bad]
 
     return random.choice(randomly_sorted_posts)
 
@@ -88,31 +89,32 @@ class AhtoRequestHandler(StatefulRequestHandler):
     that one first.
 
     Example self.PATHS: {
-        '/':         [['GET', 'POST'], handler1],
-        '/vote':     [['POST'], handler2],
-        '/ratings':  [['GET'], handler3],
+        '/':         [['GET', 'POST'], self.handler1],
+        '/vote':     [['POST'], self.handler2],
+        '/ratings':  [['GET'], self.handler3],
     }
 
-    Those handlers on the right are called like: handler(self, dh). But the
-    'self' is implicite, of course, so if you wanted to manually call a handler
-    you'd call it as handler(dh).
+    Those handlers on the right are called like: handler(self, dh).
+
+    If there's no handler for a specific file, and the file ends in '.js',
+    '.css', '.html', or '.htm', we'll retrieve that file from ./http_server/
+    This path is relative to the person who created the handler, and not to the
+    handler itself. The content-type will be whatever the extension should
+    naturally have. For example, 'foo.html' would be 'text/html'. You can
+    disable this feature by setting SERVE_FILES to False.
     """
-    PATH = {}
-
-    def __init__(self, *args, **kwargs):
-        # Give all of the handlers a sense of self, as if they were called as
-        # normal methods.
-        for key, (_, handler) in self.PATH.items():
-            self.PATH[key][1] = functools.partial(handler, self)
-
-        super(AhtoRequestHandler, self).__init__(*args, **kwargs)
+    PATHS = {}
+    SERVE_FILES = True
+    FILE_DIR = os.path.abspath("./http_server/")
 
     def do_POST_and_GET(self, dh):
         dh.path_parsed = urllib.parse.urlparse(dh.path)
         dh.query_string = urllib.parse.parse_qs(dh.path_parsed.query)
 
         if dh.path_parsed.path not in self.PATHS:
-            dh.send_error(404)
+            if not self.SERVE_FILES or not self.serve_from_filesystem(dh):
+                dh.send_error(404)
+
             return
 
         supported_protocols, handler = self.PATHS[dh.path_parsed.path]
@@ -125,19 +127,51 @@ class AhtoRequestHandler(StatefulRequestHandler):
 
     do_POST = do_GET = do_POST_and_GET
 
+    def serve_from_filesystem(self, dh) -> bool:
+        """ Will not send 404 if it can't find the file. Just returns False. """
+        path = os.path.abspath(self.FILE_DIR + dh.path)
+
+        if os.path.commonprefix([path, self.FILE_DIR]) != self.FILE_DIR:
+            dh.log_message(f"Possible directory traversal attack: {dh.path!r}")
+            return False
+
+        if not os.path.isfile(path):
+            return False
+
+        if dh.path.endswith('.html') or dh.path.endswith('.htm'):
+            content_type = 'text/html'
+        elif dh.path.endswith('.js'):
+            content_type = 'text/javascript'
+        elif dh.path.endswith('css'):
+            content_type = 'text/css'
+
+        dh.log_message(f"Serving file at {path} (parsed from: {dh.path})")
+
+        dh.send_response(200)
+        dh.send_header('Content-type', content_type)
+        dh.end_headers()
+
+        with open(path, 'r') as f:
+            dh.wfile.write(bytes(f.read(), 'utf8'))
+
+        return True
+
 class RecommendationRequestHandler(AhtoRequestHandler):
     def __init__(self, *args, **kwargs):
+        super(RecommendationRequestHandler, self).__init__(*args, **kwargs)
+
         self.PATHS = {
             '/':         [['GET'], self.root],
             '/vote':     [['GET'], self.vote],
             '/ratings':  [['GET'], self.ratings],
             '/save':     [['GET'], self.save],
         }
-        super(RecommendationRequestHandler, self).__init__(*args, **kwargs)
+
+        self.dataset = post_data.Dataset()
 
     def vote(self, dh):
         """ Sends the client 'true' in json for valid arguments and 'false' for
-            invalid ones.
+        invalid ones.
         """
         def error():
             dh.wfile.write(bytes("false", 'utf8'))
@@ -170,23 +204,23 @@ class RecommendationRequestHandler(AhtoRequestHandler):
         except ValueError:
             error()
 
-        dh.log_message("Adding ID: " + str(id_) + " to dataset: "
+        dh.log_message(f"Adding ID: {id_} to dataset: "
                        + ('good' if direction else 'bad'))
 
         if direction:
-            post_data.dataset.good.add(id_)
+            self.dataset.good.add(id_)
         else:
-            post_data.dataset.bad.add(id_)
+            self.dataset.bad.add(id_)
 
         dh.wfile.write(bytes("true", 'utf8'))
 
     def save(self, dh):
         """ Save the dataset to a file. """
-        post_data.dataset.save()
-        dh.log_message("Saved dataset with good:"
-                       + str(len(post_data.dataset.good))
+        self.dataset.save()
+        dh.log_message("Saved self.dataset with good:"
+                       + str(len(self.dataset.good))
                        + " and bad:"
-                       + str(len(post_data.dataset.bad)))
+                       + str(len(self.dataset.bad)))
 
         dh.send_response(200)
         dh.send_header('Content-type', 'text')
@@ -198,8 +232,8 @@ class RecommendationRequestHandler(AhtoRequestHandler):
 
         with tag('html'):
             with tag('head'):
-                with tag('style'):
-                    text(CSS)
+                doc.stag('link', rel='stylesheet', type='text/css',
+                         href='main.css')
 
             with tag('body'):
                 with tag('p'):
@@ -217,16 +251,18 @@ class RecommendationRequestHandler(AhtoRequestHandler):
 
     def ratings(self, dh):
         doc, tag, text = yattag.Doc().tagtext()
-        random_post = get_random_uncategorized_post()
+        random_post = get_random_uncategorized_post(self.dataset)
 
         with tag('html'):
             with tag('head'):
-                with tag('style'):
-                    text(CSS)
+                doc.stag('link', rel='stylesheet', type='text/css',
+                         href='/main.css')
 
-                with tag('script', type='text/javascript'):
-                    doc.asis("var post_id = " + str(random_post.id))
-                    doc.asis(VOTE_JS)
+                with doc.tag('script', type='text/javascript'):
+                    doc.asis(f"var post_id = {random_post.id}")
+
+                with doc.tag('script', type='text/javascript', src="/vote.js"):
+                    pass
 
             with tag('body'):
                 with tag('h1'):

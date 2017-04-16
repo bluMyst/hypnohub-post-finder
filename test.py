@@ -13,8 +13,8 @@ import post_data
 
 if __name__ == '__main__':
     print("done.")
-    nbc = naive_bayes.naive_bayes_classifier
-    dataset = post_data.dataset
+    dataset = post_data.Dataset()
+    nbc = naive_bayes.NaiveBayesClassifier.from_dataset(dataset)
     predictions_and_posts = [(nbc.predict(i.tags), i) for i in dataset.get_all()]
 
     predictions_and_posts = sorted(predictions_and_posts, key=lambda x: x[0])
