@@ -19,6 +19,6 @@ if __name__ == '__main__':
 
     predictions_and_posts = sorted(predictions_and_posts, key=lambda x: x[0])
 
-    for prediction, post in predictions_and_posts:
-        if post.id not in dataset.good:
+    for prediction, post in predictions_and_posts[-100:]:
+        if post.id not in dataset.good | dataset.bad:
             print(prediction, post, post.page_url)
