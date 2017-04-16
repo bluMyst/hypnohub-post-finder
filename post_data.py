@@ -113,7 +113,7 @@ class SimplePost(object):
         return f"<SimplePost #{self.id}>"
 
     def __str__(self):
-        return f"#{self.id} +{self.score} by {self.author}")
+        return f"#{self.id} +{self.score} by {self.author}"
 
     def _get_url(self, name, url_name=None):
         if url_name is None:
@@ -195,6 +195,10 @@ class Dataset(object):
         objects.
         """
         return map(self.get_id, self.bad)
+
+    def get_all(self):
+        """ Get all posts, in SimplePost form. """
+        return map(SimplePost, self.cache.values())
 
     def update_cache(self, print_progress=True):
         new_posts = list(hhcom.get_posts(

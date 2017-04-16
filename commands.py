@@ -1,6 +1,7 @@
 import sys
 
 import post_data
+import naive_bayes
 import http_server
 
 """
@@ -17,6 +18,7 @@ def usage():
           "- s[erve]: start serving http.",
           "- v[otes]: show your current vote data",
           "- r[eset_cache]: remove everything from the cache",
+          "- n[aive_debug]: show some data on the naive bayes classifier",
           sep='\n')
 
 if __name__ == '__main__':
@@ -29,7 +31,6 @@ if __name__ == '__main__':
     if command in ['u', 'update']:
         post_data.dataset.update_cache(print_progress=True)
         post_data.dataset.save()
-        exit(0)
     elif command in ['v', 'validate']:
         try:
             sample_size = int(sys.argv[2])
@@ -38,28 +39,40 @@ if __name__ == '__main__':
             exit(1)
         except IndexError:
             post_data.validate_cache(print_progress=True)
-            exit(0)
-
-        post_data.validate_cache(sample_size, print_progress=True)
-        exit(0)
+        else:
+            post_data.validate_cache(sample_size, print_progress=True)
     elif command in ['s', 'serve']:
         server_address = ('127.0.0.1', 8000)
         print("Serving on:",
-              f"http://{server_address[0]}:{server_address[1]/")
+              f"http://{server_address[0]}:{server_address[1]}/")
         try:
             handler = http_server.RecommendationRequestHandler(server_address)
             handler.server.serve_forever()
         except KeyboardInterrupt:
-            exit(0)
-
-        exit(1) # Shouldn't ever be called.
+            pass
+        else:
+            exit(1) # Just in case .serve_forever() fails somehow.
     elif command in ['v', 'votes']:
         print("Good:", post_data.dataset.good)
         print("Bad:", post_data.dataset.bad)
-        exit(0)
     elif command in ['r', 'reset_cache']:
         post_data.dataset.cache = {}
         post_data.dataset.save()
+    elif command in ['n', 'naive_show']:
+        nbc = naive_bayes.naive_bayes_classifier
+
+        for tag, (good, total) in nbc.tag_history.items():
+            predict = nbc.predict([tag])
+
+            if predict > 0:
+                print(f"----------{tag} ({good}/{total})----------")
+
+                print(f"P(T|G) = {good} / {nbc.ngood} = {nbc.p_t_g(tag):.2%}")
+                print(f"P(G)   = {nbc.ngood} / {nbc.total} = {nbc.p_g:.2%}")
+                print(f"P(T)   = {total} / {nbc.total} = {nbc.p_t(tag):.2%}")
+                print()
+                print(f"P(G|T) = {predict:.2%}")
+                print()
     else:
         usage()
         exit(1)

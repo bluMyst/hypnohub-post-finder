@@ -3,11 +3,12 @@ import math
 import pickle
 import os
 import abc
+from typing import *
 
 import hypnohub_communication as hhcom
+import post_data
 
-"""
-Here's what's going on:
+""" Here's what's going on:
 
 I want to show the user posts based on a Naive Bayes Classifier's best guess
 on how they'll like it.
@@ -18,38 +19,12 @@ up or thumb them down, and we'll add them to the dataset.
 
 I don't want to have the user vote on stuff that the Classifier is
 predicting the user will like, because it seems like we'd start having a
-biased dataset.
+biased dataset. We should find out for sure, though.
 
-Speaking of which, this is what the dataset needs to look like: A list of
-good posts, by ID and a list of bad posts, by ID. Ideally the tags should be
-stored, too.
-
-Also, let's find a way to cache a list of all posts on Hypnohub. Just their
-URL's, image URL's, and tags. It's only polite. But every time we start up
-this script, it should download data on any new images.
-
-However, we need to make sure that ID's and URL's all stay the same no
-matter what. Can probably just ask.  Seems likely, because of all those
-"image not found" images we keep getting.
+We need to make sure that ID's all stay the same no matter what. Can probably
+just ask. Seems likely, because of all those deleted posts and blank spots in
+the ID list.
 """
-
-class TestPost(object):
-    """ Used to test NaiveBayesClassifier. Please ignore. """
-    def __init__(self, tags):
-        self.tags = tags.split()
-
-# Ducks are good and chickens are bad.
-test_dataset = {
-    'good': ['clucks feathers white'],
-    'bad': []
-}
-
-class PostClassifierABC(metaclass=abc.ABCMeta):
-    def __init__(self, ):
-        # TODO: Come back here later. We need to blend together the logic of
-        # Dataset and post_cache first.
-        self.good_posts = list(good_posts)
-        self.bad_posts  = list(bad_posts)
 
 class NaiveBayesClassifier(object):
     """
@@ -111,7 +86,44 @@ class NaiveBayesClassifier(object):
     """
     # TODO: I did something wrong, here. TP gets insanely small which causes
     # predict() to output super high numbers.
-    def __init__(self, good_posts, bad_posts, auto_calculate=True):
+    #
+    # EDIT: What the fuuuuuucckkk!
+    # Loading cache... done.
+    # P(T|G) = 0.75
+    # P(T)   = 0.8108108108108109
+    # femsub : tgp *= 0.9249999999999999 : 0.9249999999999999
+    # P(T|G) = 0.25
+    # P(T)   = 0.3783783783783784
+    # text : tgp *= 0.6607142857142857 : 0.6111607142857143
+    # P(T|G) = 0.25
+    # P(T)   = 0.013513513513513514
+    # diaper : tgp *= 18.5 : 11.306473214285715
+    # P(T|G) = 0.25
+    # P(T)   = 0.14864864864864866
+    # femdom : tgp *= 1.6818181818181817 : 19.01543222402597
+    # 1.0278612012987012 #40237 +9 by Sleepyhead97
+    # PS> python
+    # Python 3.6.1 (v3.6.1:69c0db5, Mar 21 2017, 17:54:52) [MSC v.1900 32 bit (Intel)] on win32
+    # Type "help", "copyright", "credits" or "license" for more information.
+    # >>> import naive_bayes
+    # >>> nbc = naive_bayes.naive_bayes_classifier
+    # >>> nbc.tag_history['diaper']
+    # [1, 1]
+    # >>> nbc.p_t('diaper')
+    # 0.013513513513513514
+    # >>> nbc.p_t_g('diaper')
+    # 0.25
+    # >>> nbc.ngood
+    # 4
+    # >>> nbc.p_g
+    # 0.05405405405405406
+    # >>> nbc.p_t_g('diaper') / nbc.p_t('diaper')
+    # 18.5
+    # >>> _ * nbc.p_g
+    # 1.0
+    # >>> exit()
+    def __init__(self, good_posts: List[List[str]], bad_posts: List[List[str]],
+            auto_calculate=True):
         self.good_posts = list(good_posts)
         self.bad_posts  = list(bad_posts)
 
@@ -135,21 +147,21 @@ class NaiveBayesClassifier(object):
             # category.
             self.p_g = 0.5
 
-    def add_good(self, post):
+    def add_good(self, post: List[str]):
         self.good_posts.append(post)
         self.ngood += 1
         self.total += 1
         self._update_p_g()
         self._add_tags(post, True)
 
-    def add_bad(self, post):
+    def add_bad(self, post:List[str]):
         self.bad_posts.append(post)
         self.total += 1
         self._update_p_g()
         self._add_tags(post, False)
 
-    def _add_tags(self, post, is_good):
-        for tag in post.tags:
+    def _add_tags(self, post: List[str], is_good: bool):
+        for tag in post:
             # self.tag_history looks like this:
             # {'tag_name': [good_posts, total_posts], ...}
             if tag not in self.tag_history:
@@ -194,42 +206,30 @@ class NaiveBayesClassifier(object):
             # Just take a wild guess, if we have no dataset to try.
             return 0.01
 
-    def predict(self, post, debug=False):
+    def predict(self, post: List[str], debug=False):
         """
         Guess the probability that the user will like a given post, based on
         tags.
-
-        'debug' will print debug information if True.
         """
-        # p(good | tag) = p(tag | good) * p(good) / p(tag)
-        tp = 1
-        tgp = 1
+        temp = 1
 
-        def d(*args, **kwargs):
-            """ print debug messages """
-            print('[NBC]', *args, **kwargs)
-
-        d("Predicting ID", post.id)
-
-        for tag in post.tags:
+        for tag in post:
             if tag not in self.tag_history:
                 continue
 
-            d("Tag:", tag)
+            temp *= self.p_t_g(tag) / self.p_t(tag)
 
-            # TGP *= P(tag | G)
-            d("P(" + repr(tag), "| G) =", self.p_t_g(tag))
-            tgp *= self.p_t_g(tag)
+            if debug:
+                print("P(T|G) =", self.p_t_g(tag))
+                print("P(T)   =", self.p_t(tag))
+                print(tag, ": temp *=", self.p_t_g(tag) / self.p_t(tag), ':', temp)
 
-            # TP *= P(tag)
-            d("P(" + repr(tag) + ")   =", self.p_t(tag))
-            tp *= self.p_t(tag)
+        return temp * self.p_g
 
-        d("TGP  =", tgp)
-        d("TP   =", tp)
-        d("P(G) =", self.p_g)
-        d("Post ID:", post.id, "is predicted at:", tgp * self.p_g / tp)
-        return tgp * self.p_g / tp
+good_tags = [i.tags for i in post_data.dataset.get_good()]
+bad_tags  = [i.tags for i in post_data.dataset.get_bad()]
+naive_bayes_classifier = NaiveBayesClassifier(good_tags, bad_tags)
+del good_tags, bad_tags
 
 def split_dataset(dataset, split_ratio=0.33):
     """
