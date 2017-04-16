@@ -6,8 +6,10 @@ import http.server
 import random
 import urllib.parse
 import functools
+from typing import *
 
 import post_data
+import naive_bayes
 import ahto_lib
 
 """
@@ -32,6 +34,29 @@ def get_random_uncategorized_post(dataset):
         and i.id not in dataset.bad]
 
     return random.choice(randomly_sorted_posts)
+
+class BestPostGetter(object):
+    def __init__(self, dataset):
+        self.dataset = dataset
+        self.nbc = naive_bayes.NaiveBayesClassifier.from_dataset(self.dataset)
+
+        if len(self.dataset.cache) <= 0:
+            raise ValueError("dataset has empty cache")
+
+        self.best_posts = None
+        self.seen = set()
+
+    def __call__(self) -> Tuple[int, post_data.SimplePost]:
+        self.best_posts = [(self.nbc.predict(i.tags), i)
+                           for i in self.dataset.get_all()
+                           if  i.id not in self.dataset.good
+                           and i.id not in self.dataset.bad
+                           and i.id not in self.seen]
+        self.best_posts = sorted(self.best_posts, key=lambda x: x[0],
+                                 reverse=True)
+
+        self.seen.add(self.best_posts[0][1].id)
+        return self.best_posts[0]
 
 class StatefulRequestHandler(object):
     """
@@ -165,9 +190,11 @@ class RecommendationRequestHandler(AhtoRequestHandler):
             '/vote':     [['GET'], self.vote],
             '/ratings':  [['GET'], self.ratings],
             '/save':     [['GET'], self.save],
+            '/best':     [['GET'], self.best],
         }
 
         self.dataset = post_data.Dataset()
+        self.get_best_post = BestPostGetter(self.dataset)
 
     def vote(self, dh):
         """ Sends the client 'true' in json for valid arguments and 'false' for
@@ -250,8 +277,15 @@ class RecommendationRequestHandler(AhtoRequestHandler):
         dh.wfile.write(bytes(doc.getvalue(), 'utf8'))
 
     def ratings(self, dh):
-        doc, tag, text = yattag.Doc().tagtext()
         random_post = get_random_uncategorized_post(self.dataset)
+        self.rating_page_for_post(dh, random_post)
+
+    def best(self, dh):
+        score, post = self.get_best_post()
+        self.rating_page_for_post(dh, post, f"score: {score:.2%}")
+
+    def rating_page_for_post(self, dh, post, message=None):
+        doc, tag, text = yattag.Doc().tagtext()
 
         with tag('html'):
             with tag('head'):
@@ -259,14 +293,15 @@ class RecommendationRequestHandler(AhtoRequestHandler):
                          href='/main.css')
 
                 with doc.tag('script', type='text/javascript'):
-                    doc.asis(f"var post_id = {random_post.id}")
+                    doc.asis(f"var post_id = {post.id}")
 
                 with doc.tag('script', type='text/javascript', src="/vote.js"):
                     pass
 
             with tag('body'):
                 with tag('h1'):
-                    text('ID#: ' + str(random_post.id))
+                    text(f'ID#: {post.id}')
+                    if message: text(f' - {message}')
 
                 with tag('p'):
                     text('A (up) and Z (down) to vote. ')
@@ -284,8 +319,8 @@ class RecommendationRequestHandler(AhtoRequestHandler):
                                 onclick='downvote()'):
                             text('\\/')
 
-                    with tag('a', href=random_post.page_url):
-                        doc.stag('img', src=random_post.sample_url,
+                    with tag('a', href=post.page_url):
+                        doc.stag('img', src=post.sample_url,
                                 klass="rating_image")
 
         dh.send_response(200)
