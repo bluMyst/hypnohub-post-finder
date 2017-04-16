@@ -84,6 +84,11 @@ class NaiveBayesClassifier(object):
 
     P(G | T0 ^ T1 ^ ... ^ Tn) = TGP * P(G) / TP
     """
+    # OH MY GOD I FIGURED IT OUT. The naive assumption is what's fucking
+    # everything up. The numbers it gives are still good. It's just that the
+    # math isn't perfect because we intentionally made an assumption that isn't
+    # true.
+
     # TODO: I did something wrong, here. TP gets insanely small which causes
     # predict() to output super high numbers.
     #
@@ -130,35 +135,13 @@ class NaiveBayesClassifier(object):
         self.ngood = len(self.good_posts)
         self.total = len(self.bad_posts) + len(self.good_posts)
 
-        self._update_p_g()
+        self.p_g = self.ngood / self.total
 
         # {'tag_name': [good_posts, total_posts], ...}
         self.tag_history = dict()
 
         if auto_calculate:
             self.calculate()
-
-    def _update_p_g(self):
-        # P(G)
-        try:
-            self.p_g = self.ngood / self.total
-        except ZeroDivisionError:
-            # We don't have any posts at all, so we'll default to 50% for each
-            # category.
-            self.p_g = 0.5
-
-    def add_good(self, post: List[str]):
-        self.good_posts.append(post)
-        self.ngood += 1
-        self.total += 1
-        self._update_p_g()
-        self._add_tags(post, True)
-
-    def add_bad(self, post:List[str]):
-        self.bad_posts.append(post)
-        self.total += 1
-        self._update_p_g()
-        self._add_tags(post, False)
 
     def _add_tags(self, post: List[str], is_good: bool):
         for tag in post:
@@ -211,7 +194,7 @@ class NaiveBayesClassifier(object):
         Guess the probability that the user will like a given post, based on
         tags.
         """
-        temp = 1
+        temp = self.p_g
 
         for tag in post:
             if tag not in self.tag_history:
@@ -224,7 +207,7 @@ class NaiveBayesClassifier(object):
                 print("P(T)   =", self.p_t(tag))
                 print(tag, ": temp *=", self.p_t_g(tag) / self.p_t(tag), ':', temp)
 
-        return temp * self.p_g
+        return temp
 
 good_tags = [i.tags for i in post_data.dataset.get_good()]
 bad_tags  = [i.tags for i in post_data.dataset.get_bad()]
