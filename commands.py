@@ -33,15 +33,17 @@ if __name__ == '__main__':
         dataset.update_cache(print_progress=True)
         dataset.save()
     elif command in ['v', 'validate']:
+        dataset = post_data.Dataset()
+
         try:
             sample_size = int(sys.argv[2])
         except ValueError:
             usage()
             exit(1)
         except IndexError:
-            post_data.validate_cache(print_progress=True)
+            post_data.validate_cache(dataset, print_progress=True)
         else:
-            post_data.validate_cache(sample_size, print_progress=True)
+            post_data.validate_cache(dataset, sample_size, print_progress=True)
     elif command in ['s', 'serve']:
         server_address = ('127.0.0.1', 8000)
         print("Serving on:",

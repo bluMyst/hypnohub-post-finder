@@ -4,6 +4,7 @@ import sys
 import random
 import string
 import bz2
+import math
 
 import hypnohub_communication as hhcom
 
@@ -56,6 +57,8 @@ class SimplePost(object):
 
     FIELDS_STORED = FIELDS_USED - {'jpeg_url'}
 
+    IMMUTABLE_FIELDS_STORED = FIELDS_STORED - {'score', 'tags', 'rating'}
+
     def __init__(self, data):
         """
         Example "data": {
@@ -105,7 +108,7 @@ class SimplePost(object):
         elif self.deleted:
             return True
 
-        for attr in self.FIELDS_STORED:
+        for attr in self.IMMUTABLE_FIELDS_STORED:
             if getattr(self, attr) != getattr(other, attr):
                 return False
 
@@ -226,7 +229,7 @@ class Dataset(object):
 
         self.update_cache(print_progress)
 
-def validate_single_post(id_, print_progress=True):
+def validate_single_id(id_, print_progress=True):
     post_data = list(hhcom.get_simple_posts("id:" + str(id_)))
 
     cache_deleted = id_ not in dataset.cache or dataset.get_id(id_).deleted
@@ -245,7 +248,7 @@ def validate_single_post(id_, print_progress=True):
     if dataset.get_id(id_) != post_data[0]:
         raise Exception(f"Post #{id_} differs from the cached version.")
 
-def validate_cache(sample_size=300, print_progress=True):
+def validate_cache(dataset, sample_size=300, print_progress=True):
     """ Make sure there aren't any gaps in the post ID's, except for gaps
     that hypnohub naturally has. (Try searching for "id:8989")
 
@@ -284,4 +287,50 @@ def validate_cache(sample_size=300, print_progress=True):
             print('[', i+1, '/', sample_size, ']', sep='', end=' ')
             print('Checking ID#', id_)
 
-        validate_single_post(id_, print_progress)
+        validate_single_id(id_, print_progress)
+
+def chunk_validate_cache(dataset, sample_size=300, print_progress=True):
+    # Find the highest post id and split it into chunks of 100, then create a
+    # final chunk of however many are left. Store each chunk as a number: the
+    # highest id in that chunk. ID's start at 1, so the highest in each chunk
+    # will be 100*chunk_number. Except for the last chunk, of course.
+    # Example: [
+    #     100,
+    #     200,
+    #     236
+    # ]
+    highest_post            = dataset.get_highest_post()
+    num_chunks              = math.ceil(highest_post / 100)
+    last_chunk_size         = highest_post % 100
+    second_last_chunk_value = highest_post - (highest_post % 100)
+
+    chunks = list(range(100, second_last_chunk_value+1, 100))
+    chunks.append(highest_post)
+    assert num_chunks == len(chunks)
+
+    if len(chunks) > sample_size:
+        chunks = random.sample(chunks, 300)
+
+    for last_id_in_chunk in chunks:
+        if print_progress:
+            print(f'{last_id_in_chunk-99}-{last_id_in_chunk}/{highest_post}')
+
+        posts = list(
+            hhcom.get_simple_posts(f'id:<={last_id_in_chunk} order:id_desc'))
+
+        assert len(posts) <= 100, (last_id_in_chunk, len(chunks),
+                chunks.index(last_id_in_chunk))
+
+        for post in posts:
+            assert post is not None
+            assert post.id in range(last_id_in_chunk-99, last_id_in_chunk+1), (
+                    post.id)
+
+            cached_post = dataset.get_id(post.id)
+
+            assert (cached_post is None) == post.deleted, post.id
+
+            if post.deleted:
+                continue
+
+            assert post == cached_post, (str(post), str(cached_post))
