@@ -255,21 +255,6 @@ def validate_cache(dataset, sample_size=300, print_progress=True):
     You can set sample_size to None and it'll check every single post. This
     will obviously take an absurd length of time.
     """
-    # TODO:
-    # I know what you're thinking: It doesn't have to be this slow! You can
-    # just do searches like one of these:
-    #
-    # id:>=100 id:<=200
-    # ~id:1337 ~id:6969 ~id:42
-    #
-    # Well it turns out that the former won't work because Hypnohub only
-    # follows the second (last?) "id:" statement, and the latter won't work
-    # because you can't use OR on a special operator like that. But there
-    # /is/ a workaround! Remember how HypnoHub will only give us a maximum
-    # of 100 posts at a time? Well all we have to do is ask for 100 posts
-    # and...
-    #
-    # order:id_desc id:<=300
 
     highest_post = dataset.get_highest_post()
 
@@ -290,6 +275,19 @@ def validate_cache(dataset, sample_size=300, print_progress=True):
         validate_single_id(id_, print_progress)
 
 def chunk_validate_cache(dataset, sample_size=300, print_progress=True):
+    # Validate posts by requesting them in chunks of 100.
+    # Experimental!
+    #
+    # NOTE: You need to be a little particular with your search syntax. Here
+    # are searches that won't work:
+    #
+    # id:>=100 id:<=200
+    # ~id:1337 ~id:6969 ~id:42
+    #
+    # And here's a search that will:
+    #
+    # order:id_desc id:<=300
+
     # Find the highest post id and split it into chunks of 100, then create a
     # final chunk of however many are left. Store each chunk as a number: the
     # highest id in that chunk. ID's start at 1, so the highest in each chunk
