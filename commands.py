@@ -9,6 +9,10 @@ Takes a command from sys.argv. Basically a low-level CLI frontend to the rest
 of my code, for doing things that you can't yet do from HTTP.
 """
 
+# TODO: Everything here should be possible from within the HTTP interface.
+# Except, obviously, the "serve" command which should be its own file. Probably
+# called "run" or something.
+
 def usage():
     print("Usage:", sys.argv[0], "<command>")
     print()

@@ -192,22 +192,3 @@ def split_dataset(dataset, split_ratio=0.33):
     test_set  = copy[train_size:]
 
     return train_set, test_set
-
-if __name__ == '__main__':
-    good_posts = [
-        ['foo', 'bar'],
-        ['bar'],
-        ['foo', 'quux']
-    ]
-
-    bad_posts = [
-        ['bar', 'qux'],
-        ['bar'],
-        ['qux']
-    ]
-
-    bad_posts = map(TestPost, bad_posts)
-    good_posts = map(TestPost, good_posts)
-
-    nbc = NaiveBayesClassifier(good_posts, bad_posts)
-    nbc.calculate()

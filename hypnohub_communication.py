@@ -37,7 +37,7 @@ def check_robots_txt():
 
 def get_posts(tags=None, page=None, limit=None):
     """
-    Returns an iterable of raw(ish) BeautifulSoup objects. One for each post.
+    Returns an iterable of raw parsed-JSON objects. One for each post.
 
     Remember that this won't be in any particular order unless you ask for
     order:id or something like that.
@@ -63,6 +63,6 @@ def get_posts(tags=None, page=None, limit=None):
 
 def get_simple_posts(*args, **kwargs):
     """ Like get_posts, except the posts are automatically converted into
-        SimplePosts.
+    SimplePosts.
     """
     return map(post_data.SimplePost, get_posts(*args, **kwargs))

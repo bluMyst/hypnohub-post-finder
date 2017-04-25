@@ -16,12 +16,6 @@ import ahto_lib
 This file is for interacting with the user's web browser in various ways.
 """
 
-with open('http_server/main.css', 'r') as css_file:
-    CSS = css_file.read()
-
-with open('http_server/vote.js', 'r') as vote_js_file:
-    VOTE_JS = vote_js_file.read()
-
 def get_random_uncategorized_post(dataset):
     """ Get a random post from the cache that has yet to be categorized into
     either 'good' or 'bad'.

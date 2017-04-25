@@ -27,7 +27,7 @@ Classes for storing data on Hypnohub posts.
 #     file_url   ="//hypnohub.net//data/image/d74dced3bddd67137e14d084731bbc0f.jpg"
 #     preview_url="//hypnohub.net//data/preview/d74dced3bddd67137e14d084731bbc0f.jpg"
 #     sample_url ="//hypnohub.net//data/sample/d74dced3bddd67137e14d084731bbc0f.jpg"
-#     jpeg_url=always same as file_url?
+#     jpeg_url=always same as file_url
 #     Sometimes URLs end in .png instead.
 #
 #     status="active" or "deleted" maybe others
@@ -62,11 +62,11 @@ class SimplePost(object):
     def __init__(self, data):
         """
         Example "data": {
-            'id': "1337",
+            'id': 1337, # or "1337", but Hypnohub gives int's.
 
             # These are optional, but a post without them will be assumed to be
             # deleted.
-            'score': "1337",
+            'score': "1337", # or 1337, but Hypnohub gives str's.
             'rating': "s",
             'tags': 'tag_1 tag_2 tag_3',
             'author': "foo",
