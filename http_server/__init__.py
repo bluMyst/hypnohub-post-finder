@@ -11,46 +11,11 @@ from typing import *
 import post_data
 import naive_bayes
 import ahto_lib
+import post_getters
 
 """
 This file is for interacting with the user's web browser in various ways.
 """
-
-def get_random_uncategorized_post(dataset):
-    """ Get a random post from the cache that has yet to be categorized into
-    either 'good' or 'bad'.
-
-    Raises an IndexError if the post cache is empty.
-    """
-    randomly_sorted_posts = [
-        i for i in dataset.get_all()
-        if i.id not in dataset.good
-        and i.id not in dataset.bad]
-
-    return random.choice(randomly_sorted_posts)
-
-class BestPostGetter(object):
-    def __init__(self, dataset):
-        self.dataset = dataset
-        self.nbc = naive_bayes.NaiveBayesClassifier.from_dataset(self.dataset)
-
-        if len(self.dataset.cache) <= 0:
-            raise ValueError("dataset has empty cache")
-
-        self.best_posts = None
-        self.seen = set()
-
-    def __call__(self) -> Tuple[int, post_data.SimplePost]:
-        self.best_posts = [(self.nbc.predict(i.tags), i)
-                           for i in self.dataset.get_all()
-                           if  i.id not in self.dataset.good
-                           and i.id not in self.dataset.bad
-                           and i.id not in self.seen]
-        self.best_posts = sorted(self.best_posts, key=lambda x: x[0],
-                                 reverse=True)
-
-        self.seen.add(self.best_posts[0][1].id)
-        return self.best_posts[0]
 
 class StatefulRequestHandler(object):
     """
@@ -182,13 +147,13 @@ class RecommendationRequestHandler(AhtoRequestHandler):
         self.PATHS = {
             '/':         [['GET'], self.root],
             '/vote':     [['GET'], self.vote],
-            '/ratings':  [['GET'], self.ratings],
+            '/hot':      [['GET'], self.hot],
             '/save':     [['GET'], self.save],
             '/best':     [['GET'], self.best],
         }
 
         self.dataset = post_data.Dataset()
-        self.get_best_post = BestPostGetter(self.dataset)
+        self.post_getter = post_getters.PostGetter(self.dataset)
 
     def vote(self, dh):
         """ Sends the client 'true' in json for valid arguments and 'false' for
@@ -257,25 +222,30 @@ class RecommendationRequestHandler(AhtoRequestHandler):
                          href='main.css')
 
             with tag('body'):
-                with tag('p'):
-                    text("You probably want to go to the ")
+                text('List of pages:')
+                doc.stag('br')
+                doc.stag('br')
 
-                    with tag('a', href='ratings'):
-                        text('ratings page')
-
-                    text(".")
+                for path in self.PATHS.keys():
+                    with tag('a', href=path):
+                        text(path)
+                    doc.stag('br')
 
         dh.send_response(200)
         dh.send_header('Content-type', 'text/html')
         dh.end_headers()
         dh.wfile.write(bytes(doc.getvalue(), 'utf8'))
 
-    def ratings(self, dh):
-        random_post = get_random_uncategorized_post(self.dataset)
-        self.rating_page_for_post(dh, random_post)
+    def hot(self, dh):
+        score, post = self.post_getter.get_hot()
+        self.rating_page_for_post(dh, post, f"score: {score:.2%}")
 
     def best(self, dh):
-        score, post = self.get_best_post()
+        score, post = self.post_getter.get_best()
+        self.rating_page_for_post(dh, post, f"score: {score:.2%}")
+
+    def random(self, dh):
+        score, post = self.post_getter.get_random()
         self.rating_page_for_post(dh, post, f"score: {score:.2%}")
 
     def rating_page_for_post(self, dh, post, message=None):

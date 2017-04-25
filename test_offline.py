@@ -14,7 +14,7 @@ def dataset():
     return post_data.Dataset()
 
 def test_grup(dataset):
-    posts = [http_server.get_random_uncategorized_post(dataset)
+    posts = [post_getters.get_random_uncategorized_post(dataset)
              for i in range(100)]
     assert all(type(post) is post_data.SimplePost for post in posts)
 
