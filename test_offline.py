@@ -1,12 +1,14 @@
 import pytest
+import itertools
 
 import post_data
 import http_server
 import naive_bayes
+import ahto_lib
 
 """
-Tests that don't require us to pester Hypnohub with requests. Ideally almost
-all tests should fall under this category.
+Tests that don't require us to pester Hypnohub with requests. Ideally almost all
+tests should fall under this category.
 """
 
 @pytest.fixture(scope="module")
@@ -27,45 +29,54 @@ class NaiveBayesTests:
     def trained_nbc(dataset):
         return naive_bayes.NaiveBayesClassifier.from_dataset(dataset)
 
-    def test_data(trained_nbc):
+    def test_tnbc_sanity(trained_nbc):
         tnbc = trained_nbc
         assert tnbc.ngood <= tnbc.total
         assert tnbc.p_g == tnbc.ngood / tnbc.total
 
-        for k, (good, total) in tnbc.items():
-            assert type(k) is str
+    def test_tnbc_items(trained_nbc):
+        tnbc = trained_nbc
+        items = tnbc.good_posts.items() | tnbc.bad_posts.items()
+
+        for tag_name, (good, total) in items:
+            assert type(tag_name) is str
             assert good <= total
             assert good <= tnbc.ngood
             assert total <= tnbc.total
-            assert tnbc.predict(k) >= 0
+            assert tnbc.predict(tag_name) >= 0
+
+DUMMY_JSON = {
+    'id': 1337,
+    'score': '1338',
+    'rating': 's',
+    'tags': 'foo bar baz',
+    'author': "foo",
+    'md5': 'deadbeefc0fe',
+    'file_url':    '//hypnohub.net//data/image/deadbeefc0fe.jpg',
+    'jpeg_url':    '//hypnohub.net//data/image/deadbeefc0fe.jpg',
+    'preview_url': '//hypnohub.net//data/preview/deadbeefc0fe.jpg',
+    'sample_url':  '//hypnohub.net//data/sample/deadbeefc0fe.jpg',
+}
 
 class PostStorageTests:
     def test_simple_post():
-        dummy_json = {
-            'id': 1337,
-            'score': '1338',
-            'rating': 's',
-            'tags': 'foo bar baz',
-            'author': "foo",
-            'md5': 'deadbeefc0fe',
-            'file_url':    '//hypnohub.net//data/image/deadbeefc0fe.jpg',
-            'jpeg_url':    '//hypnohub.net//data/image/deadbeefc0fe.jpg',
-            'preview_url': '//hypnohub.net//data/preview/deadbeefc0fe.jpg',
-            'sample_url':  '//hypnohub.net//data/sample/deadbeefc0fe.jpg',
-        }
-
-        sp = post_data.SimplePost(dummy_json)
+        sp = post_data.SimplePost(DUMMY_JSON)
         assert not sp.deleted
         assert sp == sp
-        assert str(sp).count(dummy_json['id']) == 1
-        assert repr(sp).count(dummy_json['id']) == 1
+        assert str(sp).count(DUMMY_JSON['id']) == 1
+        assert repr(sp).count(DUMMY_JSON['id']) == 1
 
-        for k in (set(dummy_json.keys()) - {'id'}):
-            temp_json = dummy_json.copy()
+        # List[Tuple[str]]
+        keys_to_delete = ahto_lib.any_length_permutation(
+                DUMMY_JSON.keys() - {'id'})
+        for keys in keys_to_delete:
+            temp_json = DUMMY_JSON.copy()
             del temp_json[k]
             sp = post_data.SimplePost(temp_json)
             assert sp.deleted
-            assert sp.id == dummy_json['id']
+            assert sp.id == DUMMY_JSON['id']
+
+    def test_simple_post
 
     def test_dataset(dataset):
         for k, v in dataset.cache.items():
