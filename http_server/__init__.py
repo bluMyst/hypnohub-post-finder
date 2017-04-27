@@ -145,12 +145,25 @@ class RecommendationRequestHandler(AhtoRequestHandler):
         super(RecommendationRequestHandler, self).__init__(*args, **kwargs)
 
         self.PATHS = {
-            '/':         [['GET'], self.root],
-            '/vote':     [['GET'], self.vote],
-            '/hot':      [['GET'], self.hot],
-            '/save':     [['GET'], self.save],
-            '/best':     [['GET'], self.best],
+            '/':      [['GET'], self.root],
+            '/vote':  [['GET'], self.vote],
+            '/hot':   [['GET'], self.hot],
+            '/save':  [['GET'], self.save],
+            '/best':  [['GET'], self.best],
         }
+
+        # These are for showing the user a list of all paths with descriptions
+        # right next to them.
+        self.PATH_DESCRIPTIONS = {
+            '/':      'An index of all URLs on the server.',
+            '/vote':  'Used by Javascript to vote on images.',
+            '/hot':   'A random selection of good images.',
+            '/save':  'Save your votes so far.',
+            '/best':  'The absolute best images we can find for you.',
+        }
+        # TODO: Actually display these descriptions.
+
+        assert self.PATHS.keys() == self.PATH_DESCRIPTIONS.keys()
 
         self.dataset = post_data.Dataset()
         self.post_getter = post_getters.PostGetter(self.dataset)
