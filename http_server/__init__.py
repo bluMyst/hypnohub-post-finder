@@ -12,6 +12,7 @@ import post_data
 import naive_bayes
 import ahto_lib
 import post_getters
+import http_server.html_generator as html_generator
 
 """
 This file is for interacting with the user's web browser in various ways.
@@ -145,28 +146,40 @@ class RecommendationRequestHandler(AhtoRequestHandler):
         super(RecommendationRequestHandler, self).__init__(*args, **kwargs)
 
         self.PATHS = {
-            '/':      [['GET'], self.root],
-            '/vote':  [['GET'], self.vote],
-            '/hot':   [['GET'], self.hot],
-            '/save':  [['GET'], self.save],
-            '/best':  [['GET'], self.best],
+            '/':        [['GET'], self.root],
+            '/vote':    [['GET'], self.vote],
+            '/hot':     [['GET'], self.hot],
+            '/save':    [['GET'], self.save],
+            '/best':    [['GET'], self.best],
+            '/random':  [['GET'], self.random],
         }
 
         # These are for showing the user a list of all paths with descriptions
-        # right next to them.
+        # right next to them. Paths without descriptions won't be shown at all,
+        # because they're usually for behind-the-scenes work.
         self.PATH_DESCRIPTIONS = {
-            '/':      'An index of all URLs on the server.',
-            '/vote':  'Used by Javascript to vote on images.',
-            '/hot':   'A random selection of good images.',
-            '/save':  'Save your votes so far.',
-            '/best':  'The absolute best images we can find for you.',
+            '/':        'An index of all URLs on the server.',
+            '/hot':     'A random selection of good images.',
+            '/save':    'Save your votes so far.',
+            '/best':    'The absolute best images we can find for you.',
+            '/random':  'Totally random images.',
         }
-        # TODO: Actually display these descriptions.
-
-        assert self.PATHS.keys() == self.PATH_DESCRIPTIONS.keys()
 
         self.dataset = post_data.Dataset()
         self.post_getter = post_getters.PostGetter(self.dataset)
+
+    def send_html(self, dh, html_text):
+        assert type(html_text) == str
+        dh.send_response(200)
+        dh.send_header('Content-type', 'text/html')
+        dh.end_headers()
+        dh.wfile.write(bytes(html_text, 'utf8'))
+
+    def root(self, dh):
+        paths_and_descriptions = ((path, self.PATH_DESCRIPTIONS[path])
+                                  for path in self.PATHS.keys()
+                                  if path in self.PATH_DESCRIPTIONS)
+        self.send_html(dh, html_generator.path_index(paths_and_descriptions))
 
     def vote(self, dh):
         """ Sends the client 'true' in json for valid arguments and 'false' for
@@ -181,10 +194,11 @@ class RecommendationRequestHandler(AhtoRequestHandler):
         dh.send_header('Content-type', 'application/json')
         dh.end_headers()
 
-        if 'direction' not in dh.query_string: error()
-        if 'id' not in dh.query_string: error()
-        if len(dh.query_string['direction']) != 1: error()
-        if len(dh.query_string['id']) != 1: error()
+        if ('direction' not in dh.query_string
+                or 'id' not in dh.query_string
+                or len(dh.query_string['direction']) != 1
+                or len(dh.query_string['id']) != 1):
+            error()
 
         try:
             direction = dh.query_string['direction'][0].lower()
@@ -221,86 +235,19 @@ class RecommendationRequestHandler(AhtoRequestHandler):
                        + " and bad:"
                        + str(len(self.dataset.bad)))
 
-        dh.send_response(200)
-        dh.send_header('Content-type', 'text')
-        dh.end_headers()
-        dh.wfile.write(bytes("Saved!", 'utf8'))
-
-    def root(self, dh):
-        doc, tag, text = yattag.Doc().tagtext()
-
-        with tag('html'):
-            with tag('head'):
-                doc.stag('link', rel='stylesheet', type='text/css',
-                         href='main.css')
-
-            with tag('body'):
-                text('List of pages:')
-                doc.stag('br')
-                doc.stag('br')
-
-                for path in self.PATHS.keys():
-                    with tag('a', href=path):
-                        text(path)
-                    doc.stag('br')
-
-        dh.send_response(200)
-        dh.send_header('Content-type', 'text/html')
-        dh.end_headers()
-        dh.wfile.write(bytes(doc.getvalue(), 'utf8'))
+        self.send_html(dh, html_generator.simple_message(["Saved!"]))
 
     def hot(self, dh):
         score, post = self.post_getter.get_hot()
-        self.rating_page_for_post(dh, post, f"score: {score:.2%}")
+        self.send_html(dh,
+            html_generator.rating_page_for_post(post, f"score: {score:.2%}"))
 
     def best(self, dh):
         score, post = self.post_getter.get_best()
-        self.rating_page_for_post(dh, post, f"score: {score:.2%}")
+        self.send_html(dh,
+            html_generator.rating_page_for_post(post, f"score: {score:.2%}"))
 
     def random(self, dh):
         score, post = self.post_getter.get_random()
-        self.rating_page_for_post(dh, post, f"score: {score:.2%}")
-
-    def rating_page_for_post(self, dh, post, message=None):
-        doc, tag, text = yattag.Doc().tagtext()
-
-        with tag('html'):
-            with tag('head'):
-                doc.stag('link', rel='stylesheet', type='text/css',
-                         href='/main.css')
-
-                with doc.tag('script', type='text/javascript'):
-                    doc.asis(f"var post_id = {post.id}")
-
-                with doc.tag('script', type='text/javascript', src="/vote.js"):
-                    pass
-
-            with tag('body'):
-                with tag('h1'):
-                    text(f'ID#: {post.id}')
-                    if message: text(f' - {message}')
-
-                with tag('p'):
-                    text('A (up) and Z (down) to vote. ')
-
-                    with tag('a', href='/save'):
-                        text("Click here to save your votes.")
-
-                with tag('div', klass='voting_area'):
-                    with tag('div', klass='vote_controls'):
-                        with tag('a', href='#', klass='vote upvote',
-                                onclick='upvote()'):
-                            text('/\\')
-
-                        with tag('a', href='#', klass='vote downvote',
-                                onclick='downvote()'):
-                            text('\\/')
-
-                    with tag('a', href=post.page_url):
-                        doc.stag('img', src=post.sample_url,
-                                klass="rating_image")
-
-        dh.send_response(200)
-        dh.send_header('Content-type', 'text/html')
-        dh.end_headers()
-        dh.wfile.write(bytes(doc.getvalue(), 'utf8'))
+        self.send_html(dh,
+            html_generator.rating_page_for_post(post, f"score: {score:.2%}"))
