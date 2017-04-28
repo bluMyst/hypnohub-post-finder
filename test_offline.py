@@ -5,6 +5,7 @@ import post_data
 import http_server
 import naive_bayes
 import ahto_lib
+import post_getters
 
 """
 Tests that don't require us to pester Hypnohub with requests. Ideally almost all
@@ -15,26 +16,26 @@ tests should fall under this category.
 def dataset():
     return post_data.Dataset()
 
+@pytest.fixture(scope="module")
+def untrained_nbc():
+    return naive_bayes.NaiveBayesClassifier()
+
+@pytest.fixture(scope="module")
+def trained_nbc(dataset):
+    return naive_bayes.NaiveBayesClassifier.from_dataset(dataset)
+
 def test_grup(dataset):
     posts = [post_getters.get_random_uncategorized_post(dataset)
              for i in range(100)]
     assert all(type(post) is post_data.SimplePost for post in posts)
 
-class NaiveBayesTests:
-    @pytest.fixture(scope="module")
-    def untrained_nbc():
-        return naive_bayes.NaiveBayesClassifier()
-
-    @pytest.fixture(scope="module")
-    def trained_nbc(dataset):
-        return naive_bayes.NaiveBayesClassifier.from_dataset(dataset)
-
-    def test_tnbc_sanity(trained_nbc):
+class TestNaiveBayes:
+    def test_tnbc_sanity(self, trained_nbc):
         tnbc = trained_nbc
         assert tnbc.ngood <= tnbc.total
         assert tnbc.p_g == tnbc.ngood / tnbc.total
 
-    def test_tnbc_items(trained_nbc):
+    def test_tnbc_items(self, trained_nbc):
         tnbc = trained_nbc
         items = tnbc.good_posts.items() | tnbc.bad_posts.items()
 
@@ -58,8 +59,8 @@ DUMMY_JSON = {
     'sample_url':  '//hypnohub.net//data/sample/deadbeefc0fe.jpg',
 }
 
-class PostStorageTests:
-    def test_simple_post():
+class TestPostStorage:
+    def test_simple_post(self):
         sp = post_data.SimplePost(DUMMY_JSON)
         assert not sp.deleted
         assert sp == sp
@@ -76,9 +77,7 @@ class PostStorageTests:
             assert sp.deleted
             assert sp.id == DUMMY_JSON['id']
 
-    def test_simple_post
-
-    def test_dataset(dataset):
+    def test_dataset(self, dataset):
         for k, v in dataset.cache.items():
             assert type(k) is int
             assert type(v) is dict
