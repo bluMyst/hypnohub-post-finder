@@ -3,6 +3,8 @@ import sys
 import post_data
 import naive_bayes
 import http_server
+import ahto_lib
+import hypnohub_communication as hhcom
 
 """
 Takes a command from sys.argv. Basically a low-level CLI frontend to the rest
@@ -18,11 +20,14 @@ def usage():
     print()
     print("Possible commands:",
           "- u[pdate]: update cache",
-          "- v[alidate] [sample_size=300]: validate up to sample_size cache items",
+          "- v[alidate] [sample_size=300]: validate up to sample_size cache"
+             " items",
           "- s[erve]: start serving http.",
           "- v[otes]: show your current vote data",
           "- r[eset_cache]: remove everything from the cache",
           "- n[aive_debug]: show some data on the naive bayes classifier",
+          "- rv or record_votes <user>: get the likes and favorites from <user> and"
+            " add them to dataset.good.",
           sep='\n')
 
 if __name__ == '__main__':
@@ -88,6 +93,30 @@ if __name__ == '__main__':
                 print()
                 print(f"P(G|T) = {predict:.2%}")
                 print()
+    elif command in ['rv', 'record_votes']:
+        dataset = post_data.Dataset()
+
+        user = sys.argv[2]
+
+        while True:
+            yn = input(f"Record votes for {user}? [yn]").lower()
+
+            if yn == 'y':
+                break
+            elif yn == 'n':
+                exit(0)
+
+        with ahto_lib.ProgressMapper(2, "Requesting data...") as pm:
+            pm(0)
+            good_ids  = hhcom.get_vote_data(sys.argv[2], 3)
+            pm(1)
+            good_ids |= hhcom.get_vote_data(sys.argv[2], 2)
+
+        print("Got", len(good_ids), "items.")
+        print("Saving in cache...", end=' ')
+        dataset.good |= good_ids
+        dataset.save()
+        print("done.")
     else:
         usage()
         exit(1)

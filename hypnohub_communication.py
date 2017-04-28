@@ -1,9 +1,12 @@
-import requests
 import time
 import configparser
 import sys
 import json
 import urllib.robotparser
+from typing import *
+import sys
+
+import requests
 
 import post_data
 import ahto_lib
@@ -66,3 +69,30 @@ def get_simple_posts(*args, **kwargs):
     SimplePosts.
     """
     return map(post_data.SimplePost, get_posts(*args, **kwargs))
+
+def get_vote_data(user, vote_level) -> Set[int]:
+    """
+    Vote levels:
+    3:    Favorite
+    2:    "Great"
+    1:    "Good"
+    """
+
+    max_post = 0
+    post_ids = set()
+    while True:
+        posts = get_posts(
+            f'vote:{vote_level}:{user} order:id id:>{max_post}')
+        new_post_ids = {i['id'] for i in posts}
+
+        if __debug__ and len(new_post_ids) != 0:
+            assert len(new_post_ids & post_ids) < len(new_post_ids)
+
+        post_ids |= new_post_ids
+
+        if max_post == max(*post_ids):
+            break
+
+        max_post = max(*post_ids)
+
+    return post_ids
