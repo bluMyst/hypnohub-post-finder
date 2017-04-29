@@ -1,4 +1,5 @@
 import sys
+import warnings
 
 import post_data
 import naive_bayes
@@ -38,7 +39,9 @@ if __name__ == '__main__':
     command = sys.argv[1].lower()
 
     if command in ['u', 'update']:
-        dataset = post_data.Dataset()
+        with warnings.catch_warnings():
+            dataset = post_data.Dataset()
+
         dataset.update_cache(print_progress=True)
         dataset.save()
     elif command in ['v', 'validate']:
