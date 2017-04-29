@@ -26,8 +26,10 @@ def trained_nbc(dataset):
 
 def test_grup(dataset):
     posts = [post_getters.get_random_uncategorized_post(dataset)
-             for i in range(100)]
-    assert all(type(post) is post_data.SimplePost for post in posts)
+             for i in range(10)]
+    assert all((type(post) is post_data.SimplePost
+               and post.id not in dataset.good & dataset.bad)
+               for post in posts)
 
 class TestNaiveBayes:
     def test_tnbc_sanity(self, trained_nbc):
