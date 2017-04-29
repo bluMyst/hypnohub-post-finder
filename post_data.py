@@ -5,6 +5,7 @@ import random
 import string
 import bz2
 import math
+import warnings
 
 import hypnohub_communication as hhcom
 
@@ -115,10 +116,28 @@ class SimplePost(object):
         return True
 
     def __repr__(self):
-        return f"<SimplePost #{self.id}>"
+        if self.deleted:
+            return f"<SimplePost #{self.id} DELETED>"
+        else:
+            return f"<SimplePost #{self.id}>"
 
     def __str__(self):
-        return f"#{self.id} +{self.score} by {self.author}"
+        str_ = f"#{self.id}"
+
+        if self.deleted:
+            str += "[d]"
+
+        if hasattr(self, 'score'):
+            str_ += f" +{self.score}"
+        else:
+            str_ += " [no score]"
+
+        if hasattr(self, 'author'):
+            str_ += f" by {self.author}"
+        else:
+            str_ += " [no author]"
+
+        return str_
 
     def _get_url(self, name, url_name=None):
         if url_name is None:
@@ -165,6 +184,11 @@ class Dataset(object):
         else:
             self.cache = {}
 
+        if len(self.cache) == 0:
+            warnings.warn("Cache is empty! You should cache Hypnohub before you"
+                          " start using the dataset.",
+                          category=UserWarning)
+
     def save(self):
         """ Save dataset back to pickle file. """
         with bz2.open(self.DATASET, 'wb') as f:
@@ -180,14 +204,14 @@ class Dataset(object):
             return max(self.cache.keys())
 
     def get_id(self, id_):
-        """ Get a post from the cache by post id.
+        """ Get a SimplePost from the cache by post id.
 
-        Returns None if the post doesn't exist.
+        Returns a blank, deleted SimplePost if the id wasn't found.
         """
         try:
             return SimplePost(self.cache[id_])
         except KeyError:
-            return None
+            return SimplePost({'id': id_})
 
     def get_good(self):
         """ Get all good posts. Not ID's like self.good, but actual SimplePost
@@ -320,15 +344,12 @@ def chunk_validate_cache(dataset, sample_size=300, print_progress=True):
                 chunks.index(last_id_in_chunk))
 
         for post in posts:
-            assert post is not None
             assert post.id in range(last_id_in_chunk-99, last_id_in_chunk+1), (
                     post.id)
 
             cached_post = dataset.get_id(post.id)
 
-            assert (cached_post is None) == post.deleted, post.id
+            assert cached_post.deleted == post.deleted, post.id
 
-            if post.deleted:
-                continue
-
-            assert post == cached_post, (str(post), str(cached_post))
+            if not post.deleted:
+                assert post == cached_post, (str(post), str(cached_post))
