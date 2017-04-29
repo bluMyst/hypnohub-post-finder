@@ -64,15 +64,19 @@ class TestPostStorage:
         sp = post_data.SimplePost(DUMMY_JSON)
         assert not sp.deleted
         assert sp == sp
-        assert str(sp).count(DUMMY_JSON['id']) == 1
-        assert repr(sp).count(DUMMY_JSON['id']) == 1
+
+        id_ = str(DUMMY_JSON['id'])
+        assert str(sp).count(id_) == 1
+        assert repr(sp).count(id_) == 1
 
         # List[Tuple[str]]
         keys_to_delete = ahto_lib.any_length_permutation(
                 DUMMY_JSON.keys() - {'id'})
         for keys in keys_to_delete:
             temp_json = DUMMY_JSON.copy()
-            del temp_json[k]
+
+            for key in keys: del temp_json[key]
+
             sp = post_data.SimplePost(temp_json)
             assert sp.deleted
             assert sp.id == DUMMY_JSON['id']

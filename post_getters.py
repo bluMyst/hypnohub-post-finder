@@ -58,6 +58,7 @@ class PostGetter(object):
         id_ = random.choice(list(self.dataset.cache.keys()))
         self.seen.add(id_)
         post = self.dataset.get_id(id_)
+        assert not post.deleted
         prediction = self.nbc.predict(post.tags)
         return (prediction, post)
 
