@@ -89,6 +89,7 @@ class NaiveBayesClassifier(object):
     """
 
     def __init__(self, good_posts: List[List[str]], bad_posts: List[List[str]]):
+        # TODO: No need for good_posts and bad_posts when we have tag_history
         self.good_posts = list(good_posts)
         self.bad_posts  = list(bad_posts)
 

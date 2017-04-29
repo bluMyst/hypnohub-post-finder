@@ -9,19 +9,6 @@ Uses an NBC and a dataset to retrieve posts from various sort methods, like
 "best", "random", etc.
 """
 
-def get_random_uncategorized_post(dataset):
-    """ Get a random post from the cache that has yet to be categorized into
-    either 'good' or 'bad'.
-
-    Raises an IndexError if the post cache is empty.
-    """
-    randomly_sorted_posts = [
-        i for i in dataset.get_all()
-        if i.id not in dataset.good
-        and i.id not in dataset.bad]
-
-    return random.choice(randomly_sorted_posts)
-
 class PostGetter(object):
     def __init__(self, dataset):
         self.dataset = dataset
@@ -55,6 +42,7 @@ class PostGetter(object):
         return (prediction, post)
 
     def get_random(self) -> Tuple[int, post_data.SimplePost]:
+        # TODO: Couldn't this return a deleted post by accident?
         id_ = random.choice(list(self.dataset.cache.keys()))
         self.seen.add(id_)
         post = self.dataset.get_id(id_)

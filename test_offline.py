@@ -24,13 +24,6 @@ def untrained_nbc():
 def trained_nbc(dataset):
     return naive_bayes.NaiveBayesClassifier.from_dataset(dataset)
 
-def test_grup(dataset):
-    posts = [post_getters.get_random_uncategorized_post(dataset)
-             for i in range(10)]
-    assert all((type(post) is post_data.SimplePost
-               and post.id not in dataset.good & dataset.bad)
-               for post in posts)
-
 class TestNaiveBayes:
     def test_tnbc_sanity(self, trained_nbc):
         tnbc = trained_nbc
@@ -39,9 +32,8 @@ class TestNaiveBayes:
 
     def test_tnbc_items(self, trained_nbc):
         tnbc = trained_nbc
-        items = tnbc.good_posts.items() | tnbc.bad_posts.items()
 
-        for tag_name, (good, total) in items:
+        for tag_name, (good, total) in tnbc.tag_history.items():
             assert type(tag_name) is str
             assert good <= total
             assert good <= tnbc.ngood
@@ -88,6 +80,6 @@ class TestPostStorage:
             assert type(k) is int
             assert type(v) is dict
 
-            spv = dataset.get_id(v)
+            spv = dataset.get_id(k)
 
-            assert spv.id == k == int(v.id)
+            assert spv.id == k == int(v['id'])
