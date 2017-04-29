@@ -6,6 +6,7 @@ cache.pickle.bz2
 # Python stuff.
 *.pyc
 __pycache__
+.cache/
 
 # Vim's swap files:
 *.swp
