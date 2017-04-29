@@ -27,8 +27,10 @@ def usage():
           "- v[otes]: show your current vote data",
           "- r[eset_cache]: remove everything from the cache",
           "- n[aive_debug]: show some data on the naive bayes classifier",
-          "- rv or record_votes <user>: get the likes and favorites from <user> and"
-            " add them to dataset.good.",
+          "- re[cord_votes] <user>: get the likes and favorites from <user> and"
+             " add them to dataset.good.",
+          "- c[heck_deleted]: check to see if any of the dataset id's have been"
+             " deleted.",
           sep='\n')
 
 if __name__ == '__main__':
@@ -74,13 +76,12 @@ if __name__ == '__main__':
     elif command in ['r', 'reset_cache']:
         dataset = post_data.Dataset()
 
-        if input("Reset cache? Are you sure? [yN]").lower() != 'y':
+        if ahto_lib.yes_no(False, "Reset cache? Are you sure? [yN]"):
+            print("Erasing cache...")
+            dataset.cache = {}
+            dataset.save()
+        else:
             print("Your cache is safe!")
-            exit(0)
-
-        print("Erasing cache...")
-        dataset.cache = {}
-        dataset.save()
     elif command in ['n', 'naive_show']:
         nbc = naive_bayes.NaiveBayesClassifier.from_dataset(post_data.Dataset())
 
@@ -96,7 +97,7 @@ if __name__ == '__main__':
                 print()
                 print(f"P(G|T) = {predict:.2%}")
                 print()
-    elif command in ['rv', 'record_votes']:
+    elif command in ['re', 'record_votes']:
         dataset = post_data.Dataset()
 
         user = sys.argv[2]
@@ -118,6 +119,27 @@ if __name__ == '__main__':
         print("Got", len(good_ids), "items.")
         print("Saving in cache...", end=' ')
         dataset.good |= good_ids
+        dataset.save()
+        print("done.")
+    elif command in ['ch', 'check_deleted']:
+        with ahto_lib.LoadingDone("Loading dataset..."):
+            with warnings.catch_warnings():
+                dataset = post_data.Dataset()
+
+        dataset.update_cache(print_progress=True)
+
+        for post_id in dataset.good | dataset.bad:
+            if dataset.get_id(post_id).deleted:
+                if ahto_lib.yes_no(False,
+                                   f"Post #{post_id} appears to be deleted."
+                                   f" Remove from dataset?"):
+                    dataset.good -= {post_id}
+                    dataset.bad  -= {post_id}
+                    print("Removed")
+                else:
+                    print("Not removed.")
+
+        print("Saving...", end=' ')
         dataset.save()
         print("done.")
     else:
