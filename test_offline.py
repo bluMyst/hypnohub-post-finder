@@ -1,5 +1,6 @@
 import pytest
 import itertools
+import random
 
 import post_data
 import http_server
@@ -39,6 +40,45 @@ class TestNaiveBayes:
             assert good <= tnbc.ngood
             assert total <= tnbc.total
             assert tnbc.predict(tag_name) >= 0
+
+    def nbc_tester(self, good_data, bad_data, tests):
+        """
+        tag       :: str
+        post      :: List[tag]
+        good_data :: List[post]
+        bad_data  :: List[post]
+        tests     :: List[Tuple[post, expectation::float]]
+        """
+
+    @pytest.mark.parametrize("num_good,num_bad,expected", [
+        (1, 4, 1/5),
+        (1, 3, 1/4),
+        (3, 4, 3/7),
+        (15, 16, 15/31)])
+    def test_nbc_single_tag(self, num_good, num_bad, expected):
+        import string
+        nbc = naive_bayes.NaiveBayesClassifier(['a']*num_good, ['a']*num_bad)
+        assert nbc.predict(['a']) == pytest.approx(expected)
+
+        # Introduce other tags into the dataset. They shouldn't affect the
+        # outcome but might confuse a poorly-written NBC.
+        for i in range(10):
+            good, bad = [], []
+
+            for _ in range(num_good):
+                good.append(['a', random.choice('qox')])
+
+            for _ in range(num_bad):
+                bad.append(['a', random.choice('qox')])
+
+            nbc = naive_bayes.NaiveBayesClassifier(good, bad)
+            assert nbc.predict(['a']) == pytest.approx(expected)
+
+    def test_nbc_multi_tag(self, tag_counts, expectations):
+        """
+        tag_counts   :: Dict[tag::str, Tuple[ngood::int, nbad::int]]
+        expectations :: Dict[List[tag::str], expectation::float]
+        """
 
 DUMMY_JSON = {
     'id': 1337,

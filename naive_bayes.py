@@ -89,19 +89,21 @@ class NaiveBayesClassifier(object):
     """
 
     def __init__(self, good_posts: List[List[str]], bad_posts: List[List[str]]):
-        # TODO: No need for good_posts and bad_posts when we have tag_history
-        self.good_posts = list(good_posts)
-        self.bad_posts  = list(bad_posts)
+        good_posts, bad_posts = list(good_posts), list(bad_posts)
 
-        self.ngood = len(self.good_posts)
-        self.total = len(self.bad_posts) + len(self.good_posts)
+        self.ngood = len(good_posts)
+        self.total = len(bad_posts) + len(good_posts)
 
         self.p_g = self.ngood / self.total
 
-        # {'tag_name': [good_posts, total_posts], ...}
+        # {'tag_name': [n_good_posts, n_total_posts], ...}
         self.tag_history = dict()
 
-        self.calculate()
+        for post in good_posts:
+            self._add_tags(post, True)
+
+        for post in bad_posts:
+            self._add_tags(post, False)
 
     @classmethod
     def from_dataset(cls, dataset: post_data.Dataset, *args, **kwargs):
@@ -112,8 +114,6 @@ class NaiveBayesClassifier(object):
 
     def _add_tags(self, post: List[str], is_good: bool):
         for tag in post:
-            # self.tag_history looks like this:
-            # {'tag_name': [good_posts, total_posts], ...}
             if tag not in self.tag_history:
                 self.tag_history[tag] = [0, 0]
 
@@ -121,13 +121,6 @@ class NaiveBayesClassifier(object):
                 self.tag_history[tag][0] += 1
 
             self.tag_history[tag][1] += 1
-
-    def calculate(self):
-        for post in self.good_posts:
-            self._add_tags(post, True)
-
-        for post in self.bad_posts:
-            self._add_tags(post, False)
 
     def p_t_g(self, tag):
         """
@@ -156,7 +149,16 @@ class NaiveBayesClassifier(object):
             # Just take a wild guess, if we have no dataset to try.
             return 0.01
 
-    def predict(self, post: List[str], debug=False):
+    def single_tag_predict(self, tag, p_g=None):
+        if p_g is None:
+            p_g = self.p_g
+
+        if tag not in self.tag_history:
+            return p_g
+
+        return p_g * self.p_t_g(tag) / self.p_t(tag)
+
+    def predict(self, post: List[str]):
         """
         Guess the probability that the user will like a given post, based on
         tags.
@@ -164,15 +166,7 @@ class NaiveBayesClassifier(object):
         temp = self.p_g
 
         for tag in post:
-            if tag not in self.tag_history:
-                continue
-
-            temp *= self.p_t_g(tag) / self.p_t(tag)
-
-            if debug:
-                print("P(T|G) =", self.p_t_g(tag))
-                print("P(T)   =", self.p_t(tag))
-                print(tag, ": temp *=", self.p_t_g(tag) / self.p_t(tag), ':', temp)
+            temp = self.single_tag_predict(tag, temp)
 
         return temp
 
