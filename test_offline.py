@@ -41,15 +41,6 @@ class TestNaiveBayes:
             assert total <= tnbc.total
             assert tnbc.predict(tag_name) >= 0
 
-    def nbc_tester(self, good_data, bad_data, tests):
-        """
-        tag       :: str
-        post      :: List[tag]
-        good_data :: List[post]
-        bad_data  :: List[post]
-        tests     :: List[Tuple[post, expectation::float]]
-        """
-
     @pytest.mark.parametrize("num_good,num_bad,expected", [
         (1, 4, 1/5),
         (1, 3, 1/4),
@@ -73,12 +64,6 @@ class TestNaiveBayes:
 
             nbc = naive_bayes.NaiveBayesClassifier(good, bad)
             assert nbc.predict(['a']) == pytest.approx(expected)
-
-    def test_nbc_multi_tag(self, tag_counts, expectations):
-        """
-        tag_counts   :: Dict[tag::str, Tuple[ngood::int, nbad::int]]
-        expectations :: Dict[List[tag::str], expectation::float]
-        """
 
 DUMMY_JSON = {
     'id': 1337,
