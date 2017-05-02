@@ -146,12 +146,13 @@ class RecommendationRequestHandler(AhtoRequestHandler):
         super(RecommendationRequestHandler, self).__init__(*args, **kwargs)
 
         self.PATHS = {
-            '/':        [['GET'], self.root],
-            '/vote':    [['GET'], self.vote],
-            '/hot':     [['GET'], self.hot],
-            '/save':    [['GET'], self.save],
-            '/best':    [['GET'], self.best],
-            '/random':  [['GET'], self.random],
+            '/':            [['GET'], self.root],
+            '/vote':        [['GET'], self.vote],
+            '/hot':         [['GET'], self.hot],
+            '/save':        [['GET'], self.save],
+            '/best':        [['GET'], self.best],
+            '/random':      [['GET'], self.random],
+            '/stats':  [['GET'], self.stats],
         }
 
         # These are for showing the user a list of all paths with descriptions
@@ -163,10 +164,12 @@ class RecommendationRequestHandler(AhtoRequestHandler):
             '/save':    'Save your votes so far.',
             '/best':    'The absolute best images we can find for you.',
             '/random':  'Totally random images.',
+            '/stats':   "Statistics on... everything!",
         }
 
         self.dataset = post_data.Dataset()
-        self.post_getter = post_getters.PostGetter(self.dataset)
+        self.nbc = naive_bayes.NaiveBayesClassifier.from_dataset(self.dataset)
+        self.post_getter = post_getters.PostGetter(self.dataset, self.nbc)
 
     def send_html(self, dh, html_text):
         assert type(html_text) == str
@@ -251,3 +254,27 @@ class RecommendationRequestHandler(AhtoRequestHandler):
         score, post = self.post_getter.get_random()
         self.send_html(dh,
             html_generator.rating_page_for_post(post, f"score: {score:.2%}"))
+
+    def stats(self, dh):
+        s = textwrap.dedent(f"""
+            Total good: {len(self.dataset.good)}
+            Total bad:  {len(self.dataset.bad)}
+
+            NBC P(G): {self.nbc.p_g:.2%}
+
+            ------------------------------ GOOD ------------------------------
+            {self.dataset.good}
+
+            ------------------------------ BAD ------------------------------
+            {self.dataset.bad}
+
+            ---------------------- 100 most common NBC tags: -------------------
+        """)
+
+        tag_history = list(self.nbc.tag_history.items())
+        tag_history = sorted(tag_history, reverse=True, key=lambda i: i[1][1])
+        tag_history = tag_history[:100]
+        for tag, (good, total) in tag_history:
+            s += f"{good}/{total}: {tag}\n"
+
+        self.send_html(dh, html_generator.pre_message(s))

@@ -87,3 +87,16 @@ def simple_message(paragraphs):
                 line('p', paragraph)
 
     return doc.getvalue()
+
+def pre_message(string):
+    doc, tag, text, lin = yattag.Doc().ttl()
+
+    with tag('html'):
+        with tag('head'):
+            doc.asis(css_link())
+
+        with tag('body'):
+            with tag('pre', klass='console_output'):
+                text(string)
+
+    return doc.getvalue()

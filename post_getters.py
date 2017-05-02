@@ -10,9 +10,14 @@ Uses an NBC and a dataset to retrieve posts from various sort methods, like
 """
 
 class PostGetter(object):
-    def __init__(self, dataset):
+    def __init__(self, dataset, nbc=None):
         self.dataset = dataset
-        self.nbc = naive_bayes.NaiveBayesClassifier.from_dataset(self.dataset)
+
+        if nbc is None:
+            self.nbc = naive_bayes.NaiveBayesClassifier.from_dataset(
+                    self.dataset)
+        else:
+            self.nbc = nbc
 
         if len(self.dataset.cache) <= 0:
             raise ValueError("dataset has empty cache")

@@ -23,9 +23,7 @@ def usage():
           "- u[pdate]: update cache",
           "- v[alidate] [sample_size=300]: validate up to sample_size cache"
              " items",
-          "- v[otes]: show your current vote data",
           "- r[eset_cache]: remove everything from the cache",
-          "- n[aive_debug]: show some data on the naive bayes classifier",
           "- re[cord_votes] <user>: get the likes and favorites from <user> and"
              " add them to dataset.good.",
           "- c[heck_deleted]: check to see if any of the dataset id's have been"
@@ -70,21 +68,6 @@ if __name__ == '__main__':
             dataset.save()
         else:
             print("Your cache is safe!")
-    elif command in ['n', 'naive_show']:
-        nbc = naive_bayes.NaiveBayesClassifier.from_dataset(post_data.Dataset())
-
-        for tag, (good, total) in list(nbc.tag_history.items())[-100:]:
-            predict = nbc.predict([tag])
-
-            if predict > 0:
-                print(f"----------{tag} ({good}/{total})----------")
-
-                print(f"P(T|G) = {good} / {nbc.ngood} = {nbc.p_t_g(tag):.2%}")
-                print(f"P(G)   = {nbc.ngood} / {nbc.total} = {nbc.p_g:.2%}")
-                print(f"P(T)   = {total} / {nbc.total} = {nbc.p_t(tag):.2%}")
-                print()
-                print(f"P(G|T) = {predict:.2%}")
-                print()
     elif command in ['re', 'record_votes']:
         dataset = post_data.Dataset()
 
