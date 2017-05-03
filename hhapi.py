@@ -13,7 +13,7 @@ import ahto_lib
 
 BASE_USERAGENT = "AhtoHypnohubCrawlerBot/0.0"
 USERAGENT = BASE_USERAGENT + " (mailto://weirdusername@techie.com)"
-DELAY_BETWEEN_REQUESTS_BETWEEN_REQUESTS = 2
+DELAY_BETWEEN_REQUESTS = 2
 
 """
 This file is for communicating with the Hypnohub API (hence the name) and
