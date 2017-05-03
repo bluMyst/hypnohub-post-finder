@@ -19,9 +19,6 @@ class PostGetter(object):
         else:
             self.nbc = nbc
 
-        if len(self.dataset.cache) <= 0:
-            raise ValueError("dataset has empty cache")
-
         # self._best_posts :: List[ Tuple[int, post_data.SimplePost] ]
         self._best_posts = []
         self.seen = set()
@@ -37,7 +34,6 @@ class PostGetter(object):
 
         self._best_posts = sorted(self._best_posts, key=lambda x: x[0])
 
-        assert len(self._best_posts) >= 1
         return self._best_posts
 
     def get_best(self) -> Tuple[int, post_data.SimplePost]:

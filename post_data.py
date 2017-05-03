@@ -5,7 +5,6 @@ import random
 import string
 import bz2
 import math
-import warnings
 
 import hhapi
 
@@ -184,10 +183,9 @@ class Dataset(object):
         else:
             self.cache = {}
 
-        if len(self.cache) == 0:
-            warnings.warn("Cache is empty! You should cache Hypnohub before you"
-                          " start using the dataset.",
-                          category=UserWarning)
+    @property
+    def cache_empty(self):
+        return len(self.cache) == 0
 
     def save(self):
         """ Save dataset back to pickle file. """

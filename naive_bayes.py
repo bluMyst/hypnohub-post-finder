@@ -93,7 +93,10 @@ class NaiveBayesClassifier(object):
         self.ngood = len(good_posts)
         self.total = len(bad_posts) + len(good_posts)
 
-        self.p_g = self.ngood / self.total
+        try:
+            self.p_g = self.ngood / self.total
+        except ZeroDivisionError:
+            self.p_g = None
 
         # {'tag_name': [n_good_posts, n_total_posts], ...}
         self.tag_history = dict()
@@ -107,8 +110,9 @@ class NaiveBayesClassifier(object):
     @classmethod
     def from_dataset(cls, dataset: post_data.Dataset, *args, **kwargs):
         """ Alternative constructor. All * and ** args passed to __init__"""
-        good_posts = [i.tags for i in dataset.get_good()]
-        bad_posts  = [i.tags for i in dataset.get_bad()]
+        good_posts = [i.tags for i in dataset.get_good() if hasattr(i, 'tags')]
+        bad_posts  = [i.tags for i in dataset.get_bad()  if hasattr(i, 'tags')]
+
         return cls(good_posts, bad_posts, *args, **kwargs)
 
     def _add_tags(self, post: List[str], is_good: bool):

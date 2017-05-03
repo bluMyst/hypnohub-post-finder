@@ -141,6 +141,17 @@ class AhtoRequestHandler(StatefulRequestHandler):
 
         return True
 
+def requires_cache(f):
+    def new_f(self, dh, *args, **kwargs):
+        if self.dataset.cache_empty:
+            html = html_generator.simple_message(
+                "The Hypnohub cache is empty! :(")
+            self.send_html(dh, html)
+        else:
+            return f()
+
+    return new_f
+
 class RecommendationRequestHandler(AhtoRequestHandler):
     def __init__(self, *args, **kwargs):
         super(RecommendationRequestHandler, self).__init__(*args, **kwargs)
@@ -152,7 +163,7 @@ class RecommendationRequestHandler(AhtoRequestHandler):
             '/save':        [['GET'], self.save],
             '/best':        [['GET'], self.best],
             '/random':      [['GET'], self.random],
-            '/stats':  [['GET'], self.stats],
+            '/stats':       [['GET'], self.stats],
         }
 
         # These are for showing the user a list of all paths with descriptions
@@ -240,21 +251,25 @@ class RecommendationRequestHandler(AhtoRequestHandler):
 
         self.send_html(dh, html_generator.simple_message(["Saved!"]))
 
+    @requires_cache
     def hot(self, dh):
         score, post = self.post_getter.get_hot()
         self.send_html(dh,
             html_generator.rating_page_for_post(post, f"score: {score:.2%}"))
 
+    @requires_cache
     def best(self, dh):
         score, post = self.post_getter.get_best()
         self.send_html(dh,
             html_generator.rating_page_for_post(post, f"score: {score:.2%}"))
 
+    @requires_cache
     def random(self, dh):
         score, post = self.post_getter.get_random()
         self.send_html(dh,
             html_generator.rating_page_for_post(post, f"score: {score:.2%}"))
 
+    @requires_cache
     def stats(self, dh):
         s = textwrap.dedent(f"""
             Total good: {len(self.dataset.good)}
