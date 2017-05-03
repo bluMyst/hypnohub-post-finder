@@ -16,8 +16,8 @@ USERAGENT = BASE_USERAGENT + " (mailto://weirdusername@techie.com)"
 DELAY_BETWEEN_REQUESTS_BETWEEN_REQUESTS = 2
 
 """
-This file is for communicating with Hypnohub and formatting/understanding
-Hypnohub's responses.
+This file is for communicating with the Hypnohub API (hence the name) and
+formatting/understanding Hypnohub's responses.
 
 http://hypnohub.net/help/api
 """

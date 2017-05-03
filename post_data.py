@@ -7,7 +7,7 @@ import bz2
 import math
 import warnings
 
-import hypnohub_communication as hhcom
+import hhapi
 
 """
 Classes for storing data on Hypnohub posts.
@@ -230,7 +230,7 @@ class Dataset(object):
         return map(SimplePost, self.cache.values())
 
     def update_cache(self, print_progress=True):
-        new_posts = list(hhcom.get_posts(
+        new_posts = list(hhapi.get_posts(
             tags="order:id id:>" + str(self.get_highest_post()),
             limit=100))
 
@@ -254,7 +254,7 @@ class Dataset(object):
         self.update_cache(print_progress)
 
 def validate_single_id(id_, print_progress=True):
-    post_data = list(hhcom.get_simple_posts("id:" + str(id_)))
+    post_data = list(hhapi.get_simple_posts("id:" + str(id_)))
 
     cache_deleted = id_ not in dataset.cache or dataset.get_id(id_).deleted
     post_deleted  = len(post_data) == 0 or post_data[0].deleted
@@ -338,7 +338,7 @@ def chunk_validate_cache(dataset, sample_size=300, print_progress=True):
             print(f'{last_id_in_chunk-99}-{last_id_in_chunk}/{highest_post}')
 
         posts = list(
-            hhcom.get_simple_posts(f'id:<={last_id_in_chunk} order:id_desc'))
+            hhapi.get_simple_posts(f'id:<={last_id_in_chunk} order:id_desc'))
 
         assert len(posts) <= 100, (last_id_in_chunk, len(chunks),
                 chunks.index(last_id_in_chunk))

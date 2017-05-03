@@ -5,7 +5,7 @@ import post_data
 import naive_bayes
 import http_server
 import ahto_lib
-import hypnohub_communication as hhcom
+import hhapi
 
 """
 Takes a command from sys.argv. Basically a low-level CLI frontend to the rest
@@ -83,9 +83,9 @@ if __name__ == '__main__':
 
         with ahto_lib.ProgressMapper(2, "Requesting data...") as pm:
             pm(0)
-            good_ids  = hhcom.get_vote_data(sys.argv[2], 3)
+            good_ids  = hhapi.get_vote_data(sys.argv[2], 3)
             pm(1)
-            good_ids |= hhcom.get_vote_data(sys.argv[2], 2)
+            good_ids |= hhapi.get_vote_data(sys.argv[2], 2)
 
         print("Got", len(good_ids), "items.")
         print("Saving in cache...", end=' ')

@@ -5,7 +5,6 @@ import os
 import abc
 from typing import *
 
-import hypnohub_communication as hhcom
 import post_data
 
 """ Here's what's going on:
