@@ -14,6 +14,12 @@ of my code, for doing things that you can't yet do from HTTP.
 # TODO: Everything here should be possible from within the HTTP interface.
 # Except, obviously, the "serve" command which should be its own file. Probably
 # called "run" or something.
+#
+# This creates an interesting problem, because some of these commands will take
+# a *very* long time to complete, and we need a way to create a loading screen
+# to show the user that we're actually doing something. We'll probably have to
+# create some kind of realtime link between client and server and feed the
+# client text data to display in a little scrolling terminal thingie.
 
 def usage():
     print("Usage:", sys.argv[0], "<command>")
@@ -70,13 +76,8 @@ if __name__ == '__main__':
 
         user = sys.argv[2]
 
-        while True:
-            yn = input(f"Record votes for {user}? [yn]").lower()
-
-            if yn == 'y':
-                break
-            elif yn == 'n':
-                exit(0)
+        if not ahto_lib.yes_no(None, f"Record votes for {user}?"):
+            exit(0)
 
         with ahto_lib.ProgressMapper(2, "Requesting data...") as pm:
             pm(0)
