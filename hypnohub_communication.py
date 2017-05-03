@@ -13,6 +13,7 @@ import ahto_lib
 
 BASE_USERAGENT = "AhtoHypnohubCrawlerBot/0.0"
 USERAGENT = BASE_USERAGENT + " (mailto://weirdusername@techie.com)"
+DELAY_BETWEEN_REQUESTS_BETWEEN_REQUESTS = 2
 
 """
 This file is for communicating with Hypnohub and formatting/understanding
@@ -21,10 +22,6 @@ Hypnohub's responses.
 http://hypnohub.net/help/api
 """
 
-cfg = configparser.ConfigParser()
-cfg.read('config.cfg')
-DELAY = cfg['HTTP Requests'].getfloat('Delay Between Requests')
-
 # Sending network requests can be slooow! Only do it when we for sure need to.
 @ahto_lib.lazy_function
 def check_robots_txt():
@@ -32,7 +29,7 @@ def check_robots_txt():
             "http://hypnohub.net/robots.txt")
 
     rp.read()
-    time.sleep(DELAY)
+    time.sleep(DELAY_BETWEEN_REQUESTS)
 
     if (not rp.can_fetch(BASE_USERAGENT, "hypnohub.net/post/index.json")
             or not rp.can_fetch(BASE_USERAGENT, "hypnohub.net/post/index.xml")):
@@ -60,7 +57,7 @@ def get_posts(tags=None, page=None, limit=None):
     response = requests.get("http://hypnohub.net/post/index.json",
                             params=params, headers={'User-agent': USERAGENT})
 
-    time.sleep(DELAY)
+    time.sleep(DELAY_BETWEEN_REQUESTS)
 
     return json.loads(response.text)
 
