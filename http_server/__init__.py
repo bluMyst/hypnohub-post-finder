@@ -148,7 +148,7 @@ def requires_cache(f):
                 "The Hypnohub cache is empty! :(")
             self.send_html(dh, html)
         else:
-            return f()
+            return f(self, dh, *args, **kwargs)
 
     return new_f
 
