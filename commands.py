@@ -14,6 +14,27 @@ of my code, for doing things that you can't yet do from HTTP.
 # TODO: Everything here should be possible from within the HTTP interface.
 # Except, obviously, the "serve" command which should be its own file. Probably
 # called "run" or something.
+#
+# Update:
+# - How do we keep the user updated on our progress? This command could take a
+#   *very* long time to complete. Maybe some sort of realtime link between
+#   client and server that's handeled by its own dedicated class?
+#
+# Validate:
+# - Same problem as above.
+#
+# Reset cache:
+# - Easy to do, but be careful! We should have a /reset_cache page, and then a
+#   /javascript/reset_cache page for the Javascript itself, once we've confirmed
+#   that the user knows what they're doing.
+#
+# Record votes:
+# - Figure out how to make an HTML form, and prompt with an ok/cancel popup
+#   before doing it.
+#
+# Check deleted:
+# - This will require some complex-ish communications between client and server.
+#   We might have to store a cookie to know who is who.
 
 def usage():
     print("Usage:", sys.argv[0], "<command>")
@@ -70,13 +91,8 @@ if __name__ == '__main__':
 
         user = sys.argv[2]
 
-        while True:
-            yn = input(f"Record votes for {user}? [yn]").lower()
-
-            if yn == 'y':
-                break
-            elif yn == 'n':
-                exit(0)
+        if not ahto_lib.yes_no(None, f"Record votes for {user}?"):
+            exit(0)
 
         with ahto_lib.ProgressMapper(2, "Requesting data...") as pm:
             pm(0)
@@ -91,8 +107,7 @@ if __name__ == '__main__':
         print("done.")
     elif command in ['ch', 'check_deleted']:
         with ahto_lib.LoadingDone("Loading dataset..."):
-            with warnings.catch_warnings():
-                dataset = post_data.Dataset()
+            dataset = post_data.Dataset()
 
         dataset.update_cache(print_progress=True)
 

@@ -12,8 +12,6 @@ import hhapi
 Classes for storing data on Hypnohub posts.
 """
 
-# TODO: Import my votes into the dataset.
-
 # response XML looks like this:
 # <posts count="1337" offset="# posts skipped by page">
 #   <post
