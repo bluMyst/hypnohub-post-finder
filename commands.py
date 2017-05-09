@@ -24,8 +24,8 @@ of my code, for doing things that you can't yet do from HTTP.
 # - Same problem as above.
 #
 # Reset cache:
-# - Easy to do, but be careful! We should have a /reset_cache page, and then a
-#   /javascript/reset_cache page for the Javascript itself, once we've confirmed
+# - Easy to do, but be careful! We should have a /misc_controls page, and then a
+#   /javascript/reset_cache page for the Javascript to GET, once we've confirmed
 #   that the user knows what they're doing.
 #
 # Record votes:

@@ -173,6 +173,21 @@ class NaiveBayesClassifier(object):
 
         return temp
 
+    def mysteriousness(self, post: List[str]) -> int:
+        """
+        How mysterious is this post? How little do we know about its tags?
+        """
+        # TODO
+        # Should probably use self.total in here somewhere.
+        raise Error("Not finished yet!")
+
+        tags_seen = 0
+        for tag in post:
+            if tag not in self.tag_history:
+                continue
+
+            tags_seen += self.tag_history[tag][1]
+
 def split_dataset(dataset, split_ratio=0.33):
     """
     Split a dataset between data used for training and data used for testing

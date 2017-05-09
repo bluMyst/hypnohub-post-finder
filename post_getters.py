@@ -1,5 +1,6 @@
 import random
 from typing import *
+import itertools
 
 import post_data
 import naive_bayes
@@ -8,6 +9,7 @@ import naive_bayes
 Uses an NBC and a dataset to retrieve posts from various sort methods, like
 "best", "random", etc.
 """
+# TODO: Optimize!
 
 class PostGetter(object):
     def __init__(self, dataset, nbc=None):
@@ -23,7 +25,10 @@ class PostGetter(object):
         self._best_posts = []
         self.seen = set()
 
-    def _get_best_posts(self):
+    def _get_best_posts(self) -> List[Tuple[int, post_data.SimplePost]]:
+        """
+        In ascending order of rating.
+        """
         if len(self._best_posts) >= 1:
             return self._best_posts
 
@@ -43,7 +48,6 @@ class PostGetter(object):
         return (prediction, post)
 
     def get_random(self) -> Tuple[int, post_data.SimplePost]:
-        # TODO: Couldn't this return a deleted post by accident?
         id_ = random.choice(list(self.dataset.cache.keys()))
         self.seen.add(id_)
         post = self.dataset.get_id(id_)
@@ -53,13 +57,28 @@ class PostGetter(object):
 
     def get_hot(self) -> Tuple[int, post_data.SimplePost]:
         """
-        Posts that have a chance of being good and a chance of being totally
-        random.
+        Posts that have a chance of being good and a chance of being... worse
+        than good.
         """
-        # Chance of being totally random.
-        RANDOM_CHANCE = 0.25
+        def post_filter(i):
+            rating, post = i
+            return rating <= 0
 
-        if random.random() <= RANDOM_CHANCE:
-            return self.get_random()
-        else:
-            return self.get_best()
+        best_posts = self._get_best_posts()
+        best_posts = list(itertools.dropwhile(post_filter, best_posts))
+        index = round( random.triangular(0,
+                                         len(best_posts)-1,
+                                         len(best_posts)-1) )
+
+        while index >= 0:
+            try:
+                result = best_posts.pop(index)
+                self.seen.add(result[1].id)
+                return result
+            except IndexError:
+                pass
+
+            index -= 1
+
+        # Can't happen.
+        assert False
