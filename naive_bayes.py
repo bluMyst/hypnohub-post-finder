@@ -4,6 +4,7 @@ import pickle
 import os
 import abc
 from typing import *
+import fractions
 
 import post_data
 
@@ -35,56 +36,67 @@ class NaiveBayesClassifier(object):
 
     How it works:
 
+    Well first of all, let's talk about syntax. Math is INCREDIBLY hard to do
+    in UTF-8, or really any computerized format, so I'm just going to make some
+    stuff up:
+
+    syntax         | meaning
+    P(A)           | The probability of statement 'A' being true.
+    P(A|B)         | The probability of 'A' being true, assuming 'B' is true.
+    A&B            | A and B
+    pi{i=0->5}(i)  | The pi notation of i=0 to 5, multiplying i. In other
+                   | words: 0*1*2*3*4*5
+
     Bayes's Theorem says, given evidence E and a state we're interested in S:
 
-    P(S | E) = P(E | S) * P(S) / P(E)
+    P(S|E) = P(E|S) * P(S) / P(E)
 
     Let's say that we want to know how likely someone is to like a certain
     Post. The best indicator for this is the tags. Let's say that 'G' is
     the statement "this post is good", and 'T0' is the statement "this post
     has tag number 0".
 
-    P(G | T0) = P(T0 | G) * P(G) / P(T0)
+    P(G| 0) = P(T0|G) * P(G) / P(T0)
 
     This would work really well if we only had one tag to deal with, but
-    let's say there are multiple tags: T0, T1, T2, ...
+    let's say we're looking at a Post with "n" tags: T0, T1, T2, ..., Tn
 
-    I'm going to use the caret (^) symbol in place of the logical AND symbol.
+    Ta = pi{i=0->n}(Tn)
+    P(G|Ta) = P(Ta|G) * P(G) / P(Ta)
 
-    P(G | T0 ^ T1 ^ ... ^ Tn) = P(T0 ^ T1 ^ ... ^ Tn | G) * P(G) / P(T0 ^ T1 ^ ... ^ Tn)
-
-    Well that won't work at all! P(T0 ^ T1 ^ ...) will only match something
+    Well that won't work at all! P(Ta) will only match something
     with exactly identical tags, and we almost definitely don't have
-    anything like that in our dataset.
+    anything like /that/ in our dataset.
 
     Let's try something else. Let's intentionally make a bad(ish) assumption
     and say that the tags are conditionally independent. Meaning that a post
-    with T0 is just as likely to have T1 as a post without. (P(T0 | T1) =
-    P(T0 | !T1)).  For conditionally independent tags:
+    with T0 is just as likely to have T1 as a post without. In other words,
+    let's assume:
 
-    P(X ^ Y | Z) = P(X | Z) * P(Y | Z)
+    P(T0|T1) = P(T0|!T1)
+
+    Why are we making this assumption? Because for conditionally independent
+    tags:
+
+    P(X&Y|Z) = P(X|Z) * P(Y|Z)
+    P(X&Y)   = P(X) * P(Y)
 
     So let's go back to our multi-tag problem:
 
-    P(G | T0 ^ T1 ^ ... ^ Tn) = P(T0 ^ T1 ^ ... ^ Tn | G) * P(G) / P(T0 ^ T1 ^ ... ^ Tn)
+    P(G|Ta) = P(Ta|G) * P(G) / P(Ta)
+    P(G|Ta) = P(G) * P(Ta|G) / P(Ta)
 
-    Let TGP be the "tag is good proportion" of all tags that we're
-    interested in combined. This isn't the proportion of good posts that
-    have all of the tags. In the vast majority of cases, our data is too
-    limited to get anything useful out of a query like that. We might find
-    one other post. Instead, this is an extrapolation based on our
-    incomplete data.
+    Make sense? I hope so! Anyway, we can simplify the above equation down to:
 
-    TGP = P(T0 ^ T1 ^ ... ^ Tn | G) = P(T0 | G) * P(T1 | G) * ... * P(Tn | G)
+    P(G | Ta) = P(G) * pi{i=0->n}( P(Ti | G) / P(Ti) )
 
-    Let TP be the "has tag proportion" of all tags in all posts we have data
-    on. This is another extrapolation, using the same method as above.
+    Now check out this pseudocode:
 
-    TP = P(T0 ^ T1 ^ ... ^ Tn) = P(T0) * P(T1) * ... * P(Tn)
+    answer = P(G)
+    for tag in tags:
+        answer *= P(tag | G) / P(tag)
 
-    So basically, for a post with tags [T0, T1, ..., Tn]:
-
-    P(G | T0 ^ T1 ^ ... ^ Tn) = TGP * P(G) / TP
+    That's all it takes!
     """
 
     def __init__(self, good_posts: List[List[str]], bad_posts: List[List[str]]):

@@ -10,6 +10,9 @@ just to get them to work.
 
 # TODO: validate_cache and chunk_validate_cache were copy-pasted here but
 # they're not set up to work like unittests yet.
+#
+# Actually, these shouldn't be unittests. I don't even know why I keep this
+# code around anymore. Maybe I should just delete this entire file.
 
 def validate_single_id(id_, print_progress=True):
     post_data = list(hhapi.get_simple_posts("id:" + str(id_)))
