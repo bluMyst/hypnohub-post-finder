@@ -9,17 +9,16 @@ import naive_bayes
 Uses an NBC and a dataset to retrieve posts from various sort methods, like
 "best", "random", etc.
 """
-# TODO: Optimize!
 
 class PostGetter(object):
-    def __init__(self, dataset, nbc=None):
+    def __init__(self, dataset=None, nbc=None):
+        if dataset is None:
+            dataset = post_data.Dataset()
         self.dataset = dataset
 
         if nbc is None:
-            self.nbc = naive_bayes.NaiveBayesClassifier.from_dataset(
-                    self.dataset)
-        else:
-            self.nbc = nbc
+            nbc = naive_bayes.NaiveBayesClassifier.from_dataset(self.dataset)
+        self.nbc = nbc
 
         # self._best_posts :: List[ Tuple[int, post_data.SimplePost] ]
         self._best_posts = []
@@ -27,7 +26,9 @@ class PostGetter(object):
 
     def _get_best_posts(self) -> List[Tuple[int, post_data.SimplePost]]:
         """
-        In ascending order of rating.
+        In ASCENDING order of rating. Not descending as you might assume! The
+        best posts are at the end of the list so that we can efficiently pop
+        them off.
         """
         if len(self._best_posts) >= 1:
             return self._best_posts
