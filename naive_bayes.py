@@ -1,10 +1,6 @@
 import random
 import math
-import pickle
-import os
-import abc
-from typing import *
-import fractions
+from typing import List
 
 import post_data
 
@@ -25,6 +21,7 @@ We need to make sure that ID's all stay the same no matter what. Can probably
 just ask. Seems likely, because of all those deleted posts and blank spots in
 the ID list.
 """
+
 
 class NaiveBayesClassifier(object):
     """
@@ -191,7 +188,7 @@ class NaiveBayesClassifier(object):
         """
         # TODO
         # Should probably use self.total in here somewhere.
-        raise Error("Not finished yet!")
+        raise Exception("Not finished yet!")
 
         tags_seen = 0
         for tag in post:
@@ -199,6 +196,7 @@ class NaiveBayesClassifier(object):
                 continue
 
             tags_seen += self.tag_history[tag][1]
+
 
 def split_dataset(dataset, split_ratio=0.33):
     """

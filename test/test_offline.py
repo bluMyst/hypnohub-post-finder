@@ -1,29 +1,30 @@
 import pytest
-import itertools
 import random
 
 import post_data
-import http_server
 import naive_bayes
 import ahto_lib
-import post_getters
 
 """
 Tests that don't require us to pester Hypnohub with requests. Ideally almost all
 tests should fall under this category.
 """
 
+
 @pytest.fixture(scope="module")
 def dataset():
     return post_data.Dataset()
+
 
 @pytest.fixture(scope="module")
 def untrained_nbc():
     return naive_bayes.NaiveBayesClassifier()
 
+
 @pytest.fixture(scope="module")
 def trained_nbc(dataset):
     return naive_bayes.NaiveBayesClassifier.from_dataset(dataset)
+
 
 class TestNaiveBayes:
     def test_tnbc_sanity(self, trained_nbc):
@@ -51,7 +52,6 @@ class TestNaiveBayes:
         (3, 4, 3/7),
         (15, 16, 15/31)])
     def test_nbc_single_tag(self, num_good, num_bad, expected):
-        import string
         nbc = naive_bayes.NaiveBayesClassifier(['a']*num_good, ['a']*num_bad)
         assert nbc.predict(['a']) == pytest.approx(expected)
 
@@ -69,6 +69,7 @@ class TestNaiveBayes:
             nbc = naive_bayes.NaiveBayesClassifier(good, bad)
             assert nbc.predict(['a']) == pytest.approx(expected)
 
+
 DUMMY_JSON = {
     'id': 1337,
     'score': '1338',
@@ -82,6 +83,7 @@ DUMMY_JSON = {
     'sample_url':  '//hypnohub.net//data/sample/deadbeefc0fe.jpg',
 }
 
+
 class TestPostStorage:
     def test_simple_post(self):
         sp = post_data.SimplePost(DUMMY_JSON)
@@ -94,11 +96,13 @@ class TestPostStorage:
 
         # List[Tuple[str]]
         keys_to_delete = ahto_lib.any_length_permutation(
-                DUMMY_JSON.keys() - {'id'})
+            DUMMY_JSON.keys() - {'id'})
+
         for keys in keys_to_delete:
             temp_json = DUMMY_JSON.copy()
 
-            for key in keys: del temp_json[key]
+            for key in keys:
+                del temp_json[key]
 
             sp = post_data.SimplePost(temp_json)
             assert sp.deleted

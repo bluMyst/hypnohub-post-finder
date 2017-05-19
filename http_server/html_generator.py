@@ -1,4 +1,4 @@
-from typing import *
+from typing import List, Tuple
 
 import yattag
 
@@ -6,10 +6,12 @@ import yattag
 Generates HTML for use by the http server.
 """
 
+
 def css_link():
     doc = yattag.Doc()
     doc.stag('link', rel='stylesheet', type='text/css', href='/main.css')
     return doc.getvalue()
+
 
 def rating_page_for_post(post, message=None):
     """
@@ -30,7 +32,9 @@ def rating_page_for_post(post, message=None):
         with tag('body'):
             with tag('h1'):
                 text(f'ID#: {post.id}')
-                if message: text(f' - {message}')
+
+                if message:
+                    text(f' - {message}')
 
             with tag('p'):
                 text('A (up) and Z (down) to vote. ')
@@ -48,6 +52,7 @@ def rating_page_for_post(post, message=None):
                     doc.stag('img', src=post.sample_url, klass="rating_image")
 
     return doc.getvalue()
+
 
 def path_index(paths_and_descriptions: List[Tuple[str, str]]):
     doc, tag, text, line = yattag.Doc().ttl()
@@ -69,6 +74,7 @@ def path_index(paths_and_descriptions: List[Tuple[str, str]]):
 
     return doc.getvalue()
 
+
 def simple_message(paragraphs):
     """
     paragraphs is List[str] or just str
@@ -87,6 +93,7 @@ def simple_message(paragraphs):
                 line('p', paragraph)
 
     return doc.getvalue()
+
 
 def pre_message(string):
     doc, tag, text, lin = yattag.Doc().ttl()

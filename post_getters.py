@@ -1,5 +1,5 @@
 import random
-from typing import *
+from typing import List, Tuple
 import itertools
 
 import post_data
@@ -9,6 +9,7 @@ import naive_bayes
 Uses an NBC and a dataset to retrieve posts from various sort methods, like
 "best", "random", etc.
 """
+
 
 class PostGetter(object):
     def __init__(self, dataset=None, nbc=None):
@@ -35,8 +36,8 @@ class PostGetter(object):
 
         seen = self.dataset.good | self.dataset.bad | self.seen
         self._best_posts = [(self.nbc.predict(i.tags), i)
-                           for i in self.dataset.get_all()
-                           if i.id not in seen]
+                            for i in self.dataset.get_all()
+                            if i.id not in seen]
 
         self._best_posts = sorted(self._best_posts, key=lambda x: x[0])
 
@@ -67,9 +68,9 @@ class PostGetter(object):
 
         best_posts = self._get_best_posts()
         best_posts = list(itertools.dropwhile(post_filter, best_posts))
-        index = round( random.triangular(0,
-                                         len(best_posts)-1,
-                                         len(best_posts)-1) )
+        index = round(random.triangular(0,
+                                        len(best_posts)-1,
+                                        len(best_posts)-1))
 
         while index >= 0:
             try:

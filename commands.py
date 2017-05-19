@@ -1,8 +1,6 @@
 import sys
 
 import post_data
-import naive_bayes
-import http_server
 import ahto_lib
 import hhapi
 
@@ -36,19 +34,25 @@ of my code, for doing things that you can't yet do from HTTP.
 # - This will require some complex-ish communications between client and server.
 #   We might have to store a cookie to know who is who.
 
+
 def usage():
     print("Usage:", sys.argv[0], "<command>")
     print()
     print("Possible commands:",
           "- u[pdate]: update cache",
+
           "- v[alidate] [sample_size=300]: validate up to sample_size cache"
-             " items",
+          " items",
+
           "- r[eset_cache]: remove everything from the cache",
+
           "- re[cord_votes] <user>: get the likes and favorites from <user> and"
-             " add them to dataset.good.",
+          " add them to dataset.good.",
+
           "- c[heck_deleted]: check to see if any of the dataset id's have been"
-             " deleted.",
+          " deleted.",
           sep='\n')
+
 
 if __name__ == '__main__':
     if len(sys.argv) <= 1:

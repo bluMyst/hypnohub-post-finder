@@ -9,4 +9,5 @@ try:
 except KeyboardInterrupt:
     pass
 else:
-    exit(1) # Just in case .serve_forever() fails somehow.
+    # Just in case .serve_forever() fails somehow.
+    exit(1)

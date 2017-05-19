@@ -1,10 +1,7 @@
 import time
-import configparser
-import sys
 import json
 import urllib.robotparser
-from typing import *
-import sys
+from typing import Set
 
 import requests
 
@@ -22,11 +19,12 @@ formatting/understanding Hypnohub's responses.
 http://hypnohub.net/help/api
 """
 
+
 # Sending network requests can be slooow! Only do it when we for sure need to.
 @ahto_lib.lazy_function
 def check_robots_txt():
     rp = urllib.robotparser.RobotFileParser(
-            "http://hypnohub.net/robots.txt")
+        "http://hypnohub.net/robots.txt")
 
     rp.read()
     time.sleep(DELAY_BETWEEN_REQUESTS)
@@ -34,6 +32,7 @@ def check_robots_txt():
     if (not rp.can_fetch(BASE_USERAGENT, "hypnohub.net/post/index.json")
             or not rp.can_fetch(BASE_USERAGENT, "hypnohub.net/post/index.xml")):
         raise EnvironmentError("robots.txt disallowed us!")
+
 
 def get_posts(tags=None, page=None, limit=None):
     """
@@ -61,11 +60,13 @@ def get_posts(tags=None, page=None, limit=None):
 
     return json.loads(response.text)
 
+
 def get_simple_posts(*args, **kwargs):
     """ Like get_posts, except the posts are automatically converted into
     SimplePosts.
     """
     return map(post_data.SimplePost, get_posts(*args, **kwargs))
+
 
 def get_vote_data(user, vote_level) -> Set[int]:
     """

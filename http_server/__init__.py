@@ -1,22 +1,17 @@
-import yattag
 import textwrap
 import os
-import webbrowser
 import http.server
-import random
 import urllib.parse
-import functools
-from typing import *
 
 import post_data
 import naive_bayes
-import ahto_lib
 import post_getters
 import http_server.html_generator as html_generator
 
 """
 This file is for interacting with the user's web browser in various ways.
 """
+
 
 class StatefulRequestHandler(object):
     """
@@ -67,6 +62,7 @@ class StatefulRequestHandler(object):
 
     def do_POST(self, dh):
         raise NotImplementedError
+
 
 class AhtoRequestHandler(StatefulRequestHandler):
     """
@@ -141,6 +137,7 @@ class AhtoRequestHandler(StatefulRequestHandler):
 
         return True
 
+
 def requires_cache(f):
     def new_f(self, dh, *args, **kwargs):
         if self.dataset.cache_empty:
@@ -151,6 +148,7 @@ def requires_cache(f):
             return f(self, dh, *args, **kwargs)
 
     return new_f
+
 
 class RecommendationRequestHandler(AhtoRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -254,19 +252,22 @@ class RecommendationRequestHandler(AhtoRequestHandler):
     @requires_cache
     def hot(self, dh):
         score, post = self.post_getter.get_hot()
-        self.send_html(dh,
+        self.send_html(
+            dh,
             html_generator.rating_page_for_post(post, f"score: {score:.2%}"))
 
     @requires_cache
     def best(self, dh):
         score, post = self.post_getter.get_best()
-        self.send_html(dh,
+        self.send_html(
+            dh,
             html_generator.rating_page_for_post(post, f"score: {score:.2%}"))
 
     @requires_cache
     def random(self, dh):
         score, post = self.post_getter.get_random()
-        self.send_html(dh,
+        self.send_html(
+            dh,
             html_generator.rating_page_for_post(post, f"score: {score:.2%}"))
 
     @requires_cache

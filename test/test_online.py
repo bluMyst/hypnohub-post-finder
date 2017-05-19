@@ -1,4 +1,5 @@
 import pytest
+import random
 
 import post_data
 import hhapi
@@ -14,6 +15,7 @@ just to get them to work.
 # Actually, these shouldn't be unittests. I don't even know why I keep this
 # code around anymore. Maybe I should just delete this entire file.
 
+
 def validate_single_id(id_, print_progress=True):
     post_data = list(hhapi.get_simple_posts("id:" + str(id_)))
 
@@ -27,11 +29,14 @@ def validate_single_id(id_, print_progress=True):
     elif cache_deleted != post_deleted:
         raise Exception(id_, cache_deleted, post_deleted)
 
-    if id_ not in dataset.cache: return
+    if id_ not in dataset.cache:
+        return
+
     assert not dataset.get_id(id_).deleted
 
     if dataset.get_id(id_) != post_data[0]:
         raise Exception(f"Post #{id_} differs from the cached version.")
+
 
 def validate_cache(dataset, sample_size=300, print_progress=True):
     """ Make sure there aren't any gaps in the post ID's, except for gaps
@@ -101,12 +106,14 @@ def chunk_validate_cache(dataset, sample_size=300, print_progress=True):
         posts = list(
             hhapi.get_simple_posts(f'id:<={last_id_in_chunk} order:id_desc'))
 
-        assert len(posts) <= 100, (last_id_in_chunk, len(chunks),
-                chunks.index(last_id_in_chunk))
+        assert len(posts) <= 100, (
+            last_id_in_chunk,
+            len(chunks),
+            chunks.index(last_id_in_chunk))
 
         for post in posts:
             assert post.id in range(last_id_in_chunk-99, last_id_in_chunk+1), (
-                    post.id)
+                post.id)
 
             cached_post = dataset.get_id(post.id)
 

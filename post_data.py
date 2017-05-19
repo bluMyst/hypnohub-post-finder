@@ -1,10 +1,8 @@
 import os
 import pickle
 import sys
-import random
 import string
 import bz2
-import math
 
 import hhapi
 
@@ -42,6 +40,7 @@ Classes for storing data on Hypnohub posts.
 #
 #   <post baz qux>
 # </posts>
+
 
 class SimplePost(object):
     """
@@ -122,7 +121,7 @@ class SimplePost(object):
         str_ = f"#{self.id}"
 
         if self.deleted:
-            str += "[d]"
+            str_ += "[d]"
 
         if hasattr(self, 'score'):
             str_ += f" +{self.score}"
@@ -136,17 +135,10 @@ class SimplePost(object):
 
         return str_
 
-    def _get_url(self, name, url_name=None):
-        if url_name is None:
-            url_name = name
-
-        url = f"http://hypnohub.net/data/{url_folder}/{self.md5}."
-        url += getattr(self, f'{name}_url_ext')
-        return url
-
     @property
     def page_url(self):
         return f"http://hypnohub.net/post/show/{self.id}/"
+
 
 class Dataset(object):
     """ Tracks the posts that the user has liked and disliked. Stores them in a
