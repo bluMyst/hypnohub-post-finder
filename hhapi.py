@@ -29,8 +29,14 @@ def check_robots_txt():
     rp.read()
     time.sleep(DELAY_BETWEEN_REQUESTS)
 
-    if (not rp.can_fetch(BASE_USERAGENT, "hypnohub.net/post/index.json")
-            or not rp.can_fetch(BASE_USERAGENT, "hypnohub.net/post/index.xml")):
+    robots_allowed = rp.can_fetch(
+        BASE_USERAGENT,
+        "hypnohub.net/post/index.json")
+    robots_allowed = robots_allowed or rp.can_fetch(
+        BASE_USERAGENT,
+        "hypnohub.net/post/index.xml")
+
+    if not robots_allowed:
         raise EnvironmentError("robots.txt disallowed us!")
 
 

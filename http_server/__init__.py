@@ -1,7 +1,7 @@
-import textwrap
 import os
 import http.server
 import urllib.parse
+import math
 
 import post_data
 import naive_bayes
@@ -15,17 +15,17 @@ This file is for interacting with the user's web browser in various ways.
 
 class StatefulRequestHandler(object):
     """
-    This is a hack to get HTTPRequestHandler's to save state information between
-    requests. You have to use it like this:
+    This is a hack to get HTTPRequestHandler's to save state information
+    between requests. You have to use it like this:
 
     request_handler = StatefulRequestHandler(('127.0.0.1',8000))
     request_handler.server.serve_forever()
 
     The way this works is that on __init__, a StatefulRequestHandler object
     defines a class such that the class has the StatefulRequestHandler in its
-    closure. The class is basically a dummy HTTPRequestHandler, that really just
-    forwards any interesting calls to our StatefulRequestHandler object. I call
-    it a dummy handler.
+    closure. The class is basically a dummy HTTPRequestHandler, that really
+    just forwards any interesting calls to our StatefulRequestHandler object. I
+    call it a dummy handler.
 
     If you can't understand what that means, I don't blame you. Just look at
     the code for __init__ and figure it out for yourself. It's actually not
@@ -35,9 +35,9 @@ class StatefulRequestHandler(object):
     dumping variables galore into the global namespace of this file.
 
     'dh' is short for DummyHandler, and 'srh' is short for
-    StatefulRequestHandler. The variable names are so terse because they're used
-    a lot. They're basically just two namespaces of 'self', like this class has
-    a split personality.
+    StatefulRequestHandler. The variable names are so terse because they're
+    used a lot. They're basically just two namespaces of 'self', like this
+    class has a split personality.
 
     Also the server is built into this class because why not.
     """
@@ -109,7 +109,8 @@ class AhtoRequestHandler(StatefulRequestHandler):
     do_POST = do_GET = do_POST_and_GET
 
     def serve_from_filesystem(self, dh) -> bool:
-        """ Will not send 404 if it can't find the file. Just returns False. """
+        """ Will not send 404 if it can't find the file. Just returns False.
+        """
         path = os.path.abspath(self.FILE_DIR + dh.path)
 
         if os.path.commonprefix([path, self.FILE_DIR]) != self.FILE_DIR:
@@ -272,26 +273,34 @@ class RecommendationRequestHandler(AhtoRequestHandler):
 
     @requires_cache
     def stats(self, dh):
-        s = textwrap.dedent(f"""
-            Total good: {len(self.dataset.good)}
-            Total bad:  {len(self.dataset.bad)}
+        def header(s):
+            spacer_length = (79 - len(s) - 2) / 2
+            left = '-' * math.ceil(spacer_length)
+            right = '-' * math.floor(spacer_length)
+            return left + ' ' + s + ' ' + right
 
-            NBC P(G): {self.nbc.p_g:.2%}
-
-            ------------------------------ GOOD ------------------------------
-            {self.dataset.good}
-
-            ------------------------------ BAD ------------------------------
-            {self.dataset.bad}
-        """)
-
-        s += "\n------------------ 100 most common NBC tags -----------------\n"
+        # TODO: This is ugly code but I can't think of a better way to do it
+        # right now.
+        s  = f"Total good: {len(self.dataset.good)}\n"
+        s += f"Total bad:  {len(self.dataset.bad)}\n"
+        s += '\n'
+        s += f"NBC P(G): {self.nbc.p_g:.2%}\n"
+        s += '\n'
+        s += header("GOOD") + '\n'
+        s += f"{self.dataset.good}\n"
+        s += '\n'
+        s += header("BAD") + '\n'
+        s += f"{self.dataset.bad}\n"
+        s += '\n'
+        s += header("100 most common NBC tags") + "\n"
         tag_history = list(self.nbc.tag_history.items())
         tag_history.sort(reverse=True, key=lambda i: i[1][1])
         for tag, (good, total) in tag_history[:100]:
             s += f"{good}/{total}: {tag}\n"
 
-        s += "\n\n------------------ 100 best NBC tags ----------------------\n"
+        s += '\n'
+        s += header("100 best NBC tags") + '\n'
+
         tag_history = list(self.nbc.tag_history.items())
         tag_history.sort(reverse=True, key=lambda i: i[1][0] / i[1][1])
         for tag, (good, total) in tag_history[:100]:
