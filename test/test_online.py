@@ -9,6 +9,9 @@ Tests that are kind of obnoxious, because we have to send requests to Hypnohub
 just to get them to work.
 """
 
+# TODO: This file is an absolute mess and it doesn't even do anything yet.
+# Let's seriously consider deleting the whole thing.
+
 # TODO: validate_cache and chunk_validate_cache were copy-pasted here but
 # they're not set up to work like unittests yet.
 #

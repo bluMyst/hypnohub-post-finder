@@ -6,8 +6,8 @@ import naive_bayes
 import ahto_lib
 
 """
-Tests that don't require us to pester Hypnohub with requests. Ideally almost all
-tests should fall under this category.
+Tests that don't require us to pester Hypnohub with requests. Ideally almost
+all tests should fall under this category.
 """
 
 

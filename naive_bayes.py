@@ -96,7 +96,8 @@ class NaiveBayesClassifier(object):
     That's all it takes!
     """
 
-    def __init__(self, good_posts: List[List[str]], bad_posts: List[List[str]]):
+    def __init__(self, good_posts: List[List[str]],
+                 bad_posts: List[List[str]]):
         good_posts, bad_posts = list(good_posts), list(bad_posts)
 
         self.ngood = len(good_posts)

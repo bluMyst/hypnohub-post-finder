@@ -20,9 +20,9 @@ Classes for storing data on Hypnohub posts.
 #     author="foo"
 #
 #     md5="d74dced3bddd67137e14d084731bbc0f"
-#     file_url   ="//hypnohub.net//data/image/d74dced3bddd67137e14d084731bbc0f.jpg"
-#     preview_url="//hypnohub.net//data/preview/d74dced3bddd67137e14d084731bbc0f.jpg"
-#     sample_url ="//hypnohub.net//data/sample/d74dced3bddd67137e14d084731bbc0f.jpg"
+#     file_url   = "//hypnohub.net//data/image/[md5 goes here].jpg"
+#     preview_url= "//hypnohub.net//data/preview/[md5 goes here].jpg"
+#     sample_url = "//hypnohub.net//data/sample/[md5 goes here].jpg"
 #     jpeg_url=always same as file_url
 #     Sometimes URLs end in .png instead.
 #

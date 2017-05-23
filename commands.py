@@ -22,8 +22,8 @@ of my code, for doing things that you can't yet do from HTTP.
 # - Same problem as above.
 #
 # Reset cache:
-# - Easy to do, but be careful! We should have a /misc_controls page, and then a
-#   /javascript/reset_cache page for the Javascript to GET, once we've confirmed
+# - Easy to do, but be careful! We should have a /misc_controls page, and then
+#   an /api/reset_cache page for the Javascript to GET, once we've confirmed
 #   that the user knows what they're doing.
 #
 # Record votes:
@@ -31,8 +31,8 @@ of my code, for doing things that you can't yet do from HTTP.
 #   before doing it.
 #
 # Check deleted:
-# - This will require some complex-ish communications between client and server.
-#   We might have to store a cookie to know who is who.
+# - This will require some complex-ish communications between client and
+#   server. We might have to store a cookie to know who is who.
 
 
 def usage():
@@ -46,11 +46,11 @@ def usage():
 
           "- r[eset_cache]: remove everything from the cache",
 
-          "- re[cord_votes] <user>: get the likes and favorites from <user> and"
-          " add them to dataset.good.",
+          "- re[cord_votes] <user>: get the likes and favorites from <user>"
+          " and add them to dataset.good.",
 
-          "- c[heck_deleted]: check to see if any of the dataset id's have been"
-          " deleted.",
+          "- c[heck_deleted]: check to see if any of the dataset id's have"
+          " been deleted.",
           sep='\n')
 
 
