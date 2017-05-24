@@ -10,16 +10,11 @@ of my code, for doing things that you can't yet do from HTTP.
 """
 
 # TODO: Everything here should be possible from within the HTTP interface.
-# Except, obviously, the "serve" command which should be its own file. Probably
-# called "run" or something.
 #
 # Update:
 # - How do we keep the user updated on our progress? This command could take a
 #   *very* long time to complete. Maybe some sort of realtime link between
 #   client and server that's handeled by its own dedicated class?
-#
-# Validate:
-# - Same problem as above.
 #
 # Reset cache:
 # - Easy to do, but be careful! We should have a /misc_controls page, and then
@@ -28,7 +23,7 @@ of my code, for doing things that you can't yet do from HTTP.
 #
 # Record votes:
 # - Figure out how to make an HTML form, and prompt with an ok/cancel popup
-#   before doing it.
+#   before doing it. Yattag has some special way of doing forms.
 #
 # Check deleted:
 # - This will require some complex-ish communications between client and

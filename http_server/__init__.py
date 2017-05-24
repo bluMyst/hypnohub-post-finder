@@ -155,6 +155,8 @@ class RecommendationRequestHandler(AhtoRequestHandler):
     def __init__(self, *args, **kwargs):
         super(RecommendationRequestHandler, self).__init__(*args, **kwargs)
 
+        # TODO: API url's should start with /api/
+
         self.PATHS = {
             '/':            [['GET'], self.root],
             '/vote':        [['GET'], self.vote],
@@ -166,8 +168,7 @@ class RecommendationRequestHandler(AhtoRequestHandler):
         }
 
         # These are for showing the user a list of all paths with descriptions
-        # right next to them. Paths without descriptions won't be shown at all,
-        # because they're usually for behind-the-scenes work.
+        # right next to them. Paths without descriptions won't be shown at all.
         self.PATH_DESCRIPTIONS = {
             '/':        'An index of all URLs on the server.',
             '/hot':     'A random selection of good images.',
@@ -279,18 +280,20 @@ class RecommendationRequestHandler(AhtoRequestHandler):
             right = '-' * math.floor(spacer_length)
             return left + ' ' + s + ' ' + right
 
-        # TODO: This is ugly code but I can't think of a better way to do it
-        # right now.
-        s  = f"Total good: {len(self.dataset.good)}\n"
-        s += f"Total bad:  {len(self.dataset.bad)}\n"
-        s += '\n'
-        s += f"NBC P(G): {self.nbc.p_g:.2%}\n"
-        s += '\n'
-        s += header("GOOD") + '\n'
-        s += f"{self.dataset.good}\n"
-        s += '\n'
-        s += header("BAD") + '\n'
-        s += f"{self.dataset.bad}\n"
+        # This is ugly code but I can't think of a better way to do it.
+        s = '\n'.join([
+            f"Total good: {len(self.dataset.good)}",
+            f"Total bad:  {len(self.dataset.bad)}",
+            '',
+            f"NBC P(G): {self.nbc.p_g:.2%}",
+            '',
+            header("GOOD"),
+            f"{self.dataset.good}",
+            '',
+            header("BAD"),
+            f"{self.dataset.bad}"
+        ])
+
         s += '\n'
         s += header("100 most common NBC tags") + "\n"
         tag_history = list(self.nbc.tag_history.items())
@@ -300,7 +303,6 @@ class RecommendationRequestHandler(AhtoRequestHandler):
 
         s += '\n'
         s += header("100 best NBC tags") + '\n'
-
         tag_history = list(self.nbc.tag_history.items())
         tag_history.sort(reverse=True, key=lambda i: i[1][0] / i[1][1])
         for tag, (good, total) in tag_history[:100]:
