@@ -301,11 +301,4 @@ class RecommendationRequestHandler(AhtoRequestHandler):
         for tag, (good, total) in tag_history[:100]:
             s += f"{good}/{total}: {tag}\n"
 
-        s += '\n'
-        s += header("100 best NBC tags") + '\n'
-        tag_history = list(self.nbc.tag_history.items())
-        tag_history.sort(reverse=True, key=lambda i: i[1][0] / i[1][1])
-        for tag, (good, total) in tag_history[:100]:
-            s += f"{good}/{total}: {tag}\n"
-
         self.send_html(dh, html_generator.pre_message(s))
