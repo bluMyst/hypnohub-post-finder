@@ -187,7 +187,7 @@ class NaiveBayesClassifier(object):
         """
         How mysterious is this post? How little do we know about its tags?
         """
-        # TODO
+        # TODO: This whole thing.
         # Should probably use self.total in here somewhere.
         raise Exception("Not finished yet!")
 

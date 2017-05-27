@@ -156,6 +156,7 @@ class RecommendationRequestHandler(AhtoRequestHandler):
         super(RecommendationRequestHandler, self).__init__(*args, **kwargs)
 
         # TODO: API url's should start with /api/
+        # Can our url-parser handle multiple levels of directory like that?
 
         self.PATHS = {
             '/':            [['GET'], self.root],
