@@ -126,6 +126,11 @@ class AhtoRequestHandler(StatefulRequestHandler):
             content_type = 'text/javascript'
         elif dh.path.endswith('css'):
             content_type = 'text/css'
+        elif dh.path.endswith('ico'):
+            content_type = 'image/x-icon'
+        else:
+            # https://stackoverflow.com/questions/1176022/unknown-file-type-mime
+            content_type = 'application/octet-stream'
 
         dh.log_message(f"Serving file at {path} (parsed from: {dh.path})")
 
