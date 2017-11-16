@@ -1,7 +1,6 @@
 import time
 import json
 import urllib.robotparser
-from typing import Set
 
 import requests
 
@@ -14,7 +13,7 @@ DELAY_BETWEEN_REQUESTS = 2
 
 """
 This file is for communicating with the Hypnohub API (hence the name) and
-formatting/understanding Hypnohub's responses.
+processing Hypnohub's responses.
 
 http://hypnohub.net/help/api
 """
@@ -23,6 +22,12 @@ http://hypnohub.net/help/api
 # Sending network requests can be slooow! Only do it when we for sure need to.
 @ahto_lib.lazy_function
 def check_robots_txt():
+    """
+    Make sure our useragent is allowed to access the two URL's it might
+    request.
+
+    Last I checked (2017-11-16), HypnoHub's robots.txt was completely blank.
+    """
     rp = urllib.robotparser.RobotFileParser(
         "http://hypnohub.net/robots.txt")
 
@@ -45,7 +50,8 @@ def get_posts(tags=None, page=None, limit=None):
     Returns an iterable of raw parsed-JSON objects. One for each post.
 
     Remember that this won't be in any particular order unless you ask for
-    order:id or something like that.
+    order:id or something like that. It works exactly like the search system on
+    the actual website.
     """
     check_robots_txt()
 
@@ -68,18 +74,23 @@ def get_posts(tags=None, page=None, limit=None):
 
 
 def get_simple_posts(*args, **kwargs):
-    """ Like get_posts, except the posts are automatically converted into
+    """
+    Like get_posts, except the posts are automatically converted into
     SimplePosts.
     """
     return map(post_data.SimplePost, get_posts(*args, **kwargs))
 
 
-def get_vote_data(user, vote_level) -> Set[int]:
+def get_vote_data(user, vote_level):
     """
     Vote levels:
     3:    Favorite
     2:    "Great"
     1:    "Good"
+
+    These levels are inherent to HypnoHub. They're not anything that I made up.
+
+    Returns a set of post ID's (as int).
     """
 
     max_post = 0
