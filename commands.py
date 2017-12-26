@@ -67,7 +67,7 @@ class CommandHandler(object):
 
     def do_reset(self, args):
         '''reset: Clear the Hypnohub cache.'''
-        if ahto_lib.yes_no(False, "Reset cache? Are you sure? [yN]"):
+        if ahto_lib.yes_no(False, "Reset cache? Are you sure?"):
             print("Erasing cache...")
             self.dataset.cache = {}
             self.dataset.save()
