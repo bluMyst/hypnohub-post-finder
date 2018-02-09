@@ -47,6 +47,8 @@ class CommandHandler(object):
         getattr(self, f'do_{command}')(args)
 
     def usage(self, script_name):
+        """ Print a simple help message, based on the docstrings of every do_*
+        method. """
         print("Usage:", script_name, "<command>")
         print()
         print("Possible commands:")
@@ -78,8 +80,11 @@ class CommandHandler(object):
         '''record_votes <user>: Add a user's votes to the dataset.'''
         user = args[0]
 
+        print("WARNING: This cannot be undone!")
+        print()
+
         if not ahto_lib.yes_no(None, f"Record votes for {user}?"):
-            exit(0)
+            return
 
         with ahto_lib.ProgressMapper(2, "Requesting data...") as pm:
             pm(0)
@@ -88,6 +93,12 @@ class CommandHandler(object):
             good_ids |= hhapi.get_vote_data(sys.argv[2], 2)
 
         print("Got", len(good_ids), "items.")
+
+        num_new = len(good_ids - self.dataset.good)
+        message = (f"About to add {num_new} new items to the dataset. Are you "
+                   f"really, really sure that '{user}' is the right user?")
+        if not ahto_lib.yes_no(None, message):
+            return
 
         with ahto_lib.LoadingDone("Saving in cache..."):
             self.dataset.good |= good_ids
@@ -107,7 +118,7 @@ class CommandHandler(object):
                 if yn:
                     self. dataset.good -= {post_id}
                     self.dataset.bad  -= {post_id}
-                    print("Removed")
+                    print("Removed.")
                 else:
                     print("Not removed.")
 
