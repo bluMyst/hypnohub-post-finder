@@ -145,6 +145,14 @@ class AhtoRequestHandler(StatefulRequestHandler):
 
 
 def requires_cache(f):
+    """ Blocks the user from loading certain pages unless the Hypnohub cache
+    has entries in it.
+
+    Basically, this is a decorator to give a user-friendly error screen instead
+    of crashing.
+    """
+    # TODO: You should be able to update the cache from the web interface, and
+    # this decorator should give you the option to do so.
     def new_f(self, dh, *args, **kwargs):
         if self.dataset.cache_empty:
             html = html_generator.simple_message(
@@ -249,13 +257,20 @@ class RecommendationRequestHandler(AhtoRequestHandler):
 
     def save(self, dh):
         """ Save the dataset to a file. """
+        # Returns 'true' on success. On failure, just crashes :/
+        # TODO: This should be called via Javascript in the image-viewing
+        #       page.
         self.dataset.save()
         dh.log_message("Saved self.dataset with good:"
                        + str(len(self.dataset.good))
                        + " and bad:"
                        + str(len(self.dataset.bad)))
 
-        self.send_html(dh, html_generator.simple_message(["Saved!"]))
+        dh.send_response(200)
+        dh.send_header('Content-type', 'application/json')
+        dh.end_headers()
+
+        dh.wfile.write(bytes("true", 'utf8'))
 
     @requires_cache
     def hot(self, dh):
