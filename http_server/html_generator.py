@@ -26,7 +26,11 @@ def rating_page_for_post(post, message=None):
             with doc.tag('script', type='text/javascript'):
                 doc.asis(f"var post_id = {post.id}")
 
+            # TODO: Should not have to have 'with' or 'pass' here.
             with doc.tag('script', type='text/javascript', src="/vote.js"):
+                pass
+
+            with doc.tag('script', type='text/javascript', src="/vote_button.js"):
                 pass
 
         with tag('body'):
@@ -38,7 +42,8 @@ def rating_page_for_post(post, message=None):
 
             with tag('p'):
                 text('A (up) and Z (down) to vote. ')
-                line('a', "Click here to save your votes.", href='/save')
+
+                line('div', "enable javascript to save", id='save_button')
 
             with tag('div', klass='voting_area'):
                 with tag('div', klass='vote_controls'):

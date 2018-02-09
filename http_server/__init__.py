@@ -258,8 +258,6 @@ class RecommendationRequestHandler(AhtoRequestHandler):
     def save(self, dh):
         """ Save the dataset to a file. """
         # Returns 'true' on success. On failure, just crashes :/
-        # TODO: This should be called via Javascript in the image-viewing
-        #       page.
         self.dataset.save()
         dh.log_message("Saved self.dataset with good:"
                        + str(len(self.dataset.good))
