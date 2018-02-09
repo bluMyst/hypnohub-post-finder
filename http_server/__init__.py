@@ -132,7 +132,7 @@ class AhtoRequestHandler(StatefulRequestHandler):
             # https://stackoverflow.com/questions/1176022/unknown-file-type-mime
             content_type = 'application/octet-stream'
 
-        dh.log_message(f"Serving file at {path} (parsed from: {dh.path})")
+        dh.log_message(f"Serving file at: {dh.path}")
 
         dh.send_response(200)
         dh.send_header('Content-type', content_type)
