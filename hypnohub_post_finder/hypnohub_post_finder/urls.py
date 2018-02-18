@@ -16,6 +16,12 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
+import post_viewer
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+
+    path('best',   post_viewer.views.best),
+    path('hot',    post_viewer.views.hot),
+    path('random', post_viewer.views.random),
 ]
