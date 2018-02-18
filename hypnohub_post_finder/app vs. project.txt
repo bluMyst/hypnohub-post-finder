@@ -1,0 +1,13 @@
+The art of creating and maintaining a good Django app is that it should follow
+the truncated Unix philosophy according to Douglas McIlroy: "Write programs
+that do one thing and do it well".
+
+Again the authors state:
+
+In essence, each app should be tightly focused on its task. If an app can’t be
+explained in a single sentence of moderate length, or you need to say ‘and’
+more than once, it probably means the app is too big and should be broken up.
+
+Since I don't understand enough about how apps work, and if apps can "see" data
+from other apps, I'm just going to make one big app for now. And I'll break it
+up later.
