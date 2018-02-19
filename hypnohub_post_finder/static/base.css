@@ -14,27 +14,7 @@ pre {
     /* white-space: pre; */
 }
 
-.rating_image {
-    width: 95%;
-}
-
-.vote_controls {
-    float: left;
-    background: #222;
-    width: 5%;
-    text-align: center;
-}
-
-.vote {
-    display: block;
-    text-decoration: none;
-    font-size: 4em;
-}
-
-.upvote {
-    margin-bottom: 0.5em;
-}
-
+/*
 #console {
     font: 12pt monospace;
     border: 1px solid #00e0e0;
@@ -43,3 +23,4 @@ pre {
     height: 80%;
     width: 95%
 }
+*/
