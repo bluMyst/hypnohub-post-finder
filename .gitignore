@@ -1,8 +1,7 @@
 # Script-generated files:
-bad_posts.html
-good_posts.html
 cache.pickle.bz2
 dataset.pickle.bz2
+*.sqlite3
 
 # Python stuff.
 *.pyc
