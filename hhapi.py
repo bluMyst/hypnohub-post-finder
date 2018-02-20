@@ -18,59 +18,60 @@ processing Hypnohub's responses.
 http://hypnohub.net/help/api
 """
 
+class HypnohubAPIRequester(object):
+    def __init__(self):
+        self.check_robots_txt()
 
-# Sending network requests can be slooow! Only do it when we for sure need to.
-@ahto_lib.lazy_function
-def check_robots_txt():
-    """
-    Make sure our useragent is allowed to access the two URL's it might
-    request.
+    def check_robots_txt():
+        """
+        Make sure our useragent is allowed to access the two URL's it might
+        request.
 
-    Last I checked (2017-11-16), HypnoHub's robots.txt was completely blank.
-    """
-    rp = urllib.robotparser.RobotFileParser(
-        "http://hypnohub.net/robots.txt")
+        Last I checked (2017-11-16), HypnoHub's robots.txt was completely blank.
+        """
+        rp = urllib.robotparser.RobotFileParser(
+            "http://hypnohub.net/robots.txt")
 
-    rp.read()
-    time.sleep(DELAY_BETWEEN_REQUESTS)
+        rp.read()
 
-    robots_allowed = rp.can_fetch(
-        BASE_USERAGENT,
-        "hypnohub.net/post/index.json")
-    robots_allowed = robots_allowed or rp.can_fetch(
-        BASE_USERAGENT,
-        "hypnohub.net/post/index.xml")
+        # I'm pretty sure .read() is blocking and this is just here in case we
+        # make other requests. So we don't spam them too fast.
+        time.sleep(DELAY_BETWEEN_REQUESTS)
 
-    if not robots_allowed:
-        raise EnvironmentError("robots.txt disallowed us!")
+        robots_allowed = rp.can_fetch(
+            BASE_USERAGENT,
+            "hypnohub.net/post/index.json")
+        robots_allowed = robots_allowed or rp.can_fetch(
+            BASE_USERAGENT,
+            "hypnohub.net/post/index.xml")
 
+        if not robots_allowed:
+            raise EnvironmentError("robots.txt disallowed us!")
 
-def get_posts(tags=None, page=None, limit=None):
-    """
-    Returns an iterable of raw parsed-JSON objects. One for each post.
+    def get_posts(self, tags=None, page=None, limit=None):
+        """
+        Returns an iterable of raw parsed-JSON objects. One for each post.
 
-    Remember that this won't be in any particular order unless you ask for
-    order:id or something like that. It works exactly like the search system on
-    the actual website.
-    """
-    check_robots_txt()
+        Remember that this won't be in any particular order unless you ask for
+        order:id or something like that. It works exactly like the search system on
+        the actual website.
+        """
+        params = {}
+        if page is not None:
+            params['page'] = page
 
-    params = {}
-    if page is not None:
-        params['page'] = page
+        if limit is not None:
+            params['limit'] = limit
 
-    if limit is not None:
-        params['limit'] = limit
+        if tags is not None:
+            params['tags'] = tags
 
-    if tags is not None:
-        params['tags'] = tags
+        response = requests.get("http://hypnohub.net/post/index.json",
+                                params=params, headers={'User-agent': USERAGENT})
 
-    response = requests.get("http://hypnohub.net/post/index.json",
-                            params=params, headers={'User-agent': USERAGENT})
+        time.sleep(DELAY_BETWEEN_REQUESTS)
 
-    time.sleep(DELAY_BETWEEN_REQUESTS)
-
-    return json.loads(response.text)
+        return json.loads(response.text)
 
 
 def get_simple_posts(*args, **kwargs):
