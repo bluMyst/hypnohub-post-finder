@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "main_app/base.html" %}
 
 {% comment %}
   Required context:
@@ -13,6 +13,9 @@
 
 {% block head %}
   <style>
+    /* TODO: Dynamically (with Javascript) set the image's width and height
+       depending on the aspect ratio of the image and the aspect ratio of the
+       user's window. */
     .rating_image {
       width: 95%;
     }
@@ -48,26 +51,7 @@
   </style>
 
   <script>
-    /*
-    TODO: This approach to voting is very misguided. Instead, it should
-    work similarly to reddit. Triggering an upvote or downvote should
-    change the color of the upvote or downvote *button*. And then once the
-    vote request is confirmed to have gone through, the color should
-    change *again*, to a more vibrant one. And the user should be able to
-    change their vote as many times as they want.
-
-    grey: no vote
-    muted cyan: sending vote request
-    normal cyan: vote request sent
-
-    Of course, these should be defined in the CSS.
-
-    Also, the save_button.js file already knows how to do most of this. So
-    what we really need is to generalize that code to be able to handle
-    multiple situations.
-
-    Okay, I've generalized save_button.js, so now it's just a matter of interweaving its code with this code.
-    */
+    // TODO: Test saving and voting.
 
     class AsyncAPIRequestManager {
       // Gives the user simple feedback on the progress of an
