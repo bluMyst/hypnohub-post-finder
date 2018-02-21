@@ -14,6 +14,11 @@ rating_validator = validators.RegexValidator(
 )
 
 def validate_url(type_):
+    # TODO: validate_url
+    def validator(url):
+        pass
+
+    return validator
 
 class Post(models.Model):
     id_num = models.PositiveIntegerField(
@@ -66,8 +71,8 @@ class Post(models.Model):
     jpeg_url = models.CharField(
         max_length=64,
         blank=True, # TODO: Not actually sure if jpeg_url can be blank.
-        help_text="I'm pretty sure this is file_url but converted to jpg, if'
-        ' necessary.",
+        help_text="I'm pretty sure this is file_url but converted to jpg, if"
+        ' necessary.',
     )
 
     sample_url = models.CharField(
