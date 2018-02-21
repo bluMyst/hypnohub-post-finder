@@ -2,6 +2,10 @@ import os
 import http.server
 import urllib.parse
 import math
+import queue
+import threading
+import time
+import random
 
 import post_data
 import naive_bayes
@@ -173,24 +177,32 @@ class RecommendationRequestHandler(AhtoRequestHandler):
 
         self.PATHS = {
             '/':            [['GET'], self.root],
-            '/vote':        [['GET'], self.vote],
             '/hot':         [['GET'], self.hot],
-            '/save':        [['GET'], self.save],
             '/best':        [['GET'], self.best],
             '/random':      [['GET'], self.random],
             '/stats':       [['GET'], self.stats],
+
+            '/vote':        [['GET'], self.vote],
+            '/save':        [['GET'], self.save],
+            '/readConsole': [['GET'], self.readConsole],
+            '/console':     [['GET'], self.console],
+            '/testConsole': [['GET'], self.testConsole],
         }
 
         # These are for showing the user a list of all paths with descriptions
         # right next to them. Paths without descriptions won't be shown at all.
         self.PATH_DESCRIPTIONS = {
-            '/':        'An index of all URLs on the server.',
-            '/hot':     'A random selection of good images.',
-            '/save':    'Save your votes so far.',
-            '/best':    'The absolute best images we can find for you.',
-            '/random':  'Totally random images.',
-            '/stats':   "Statistics on... everything!",
+            '/':            'An index of all URLs on the server.',
+            '/hot':         'A random selection of good images.',
+            '/save':        'Save your votes so far.',
+            '/best':        'The absolute best images we can find for you.',
+            '/random':      'Totally random images.',
+            '/stats':       'Statistics on... everything!',
+            '/testConsole': 'Test the console. (debugging feature)',
         }
+
+        # Used by /readConsole and /console
+        self.console_queues = dict()
 
         self.dataset = post_data.Dataset()
         self.nbc = naive_bayes.NaiveBayesClassifier.from_dataset(self.dataset)
@@ -213,6 +225,8 @@ class RecommendationRequestHandler(AhtoRequestHandler):
         """ Sends the client 'true' in json for valid arguments and 'false' for
         invalid ones.
         """
+        # TODO: Send code 422 on error. Also check other functions for sending
+        #       200 incorrectly.
         def error():
             dh.wfile.write(bytes("false", 'utf8'))
             print("--------- vote error", dh.query_string, "---------")
@@ -269,6 +283,120 @@ class RecommendationRequestHandler(AhtoRequestHandler):
         dh.end_headers()
 
         dh.wfile.write(bytes("true", 'utf8'))
+
+    def testConsole(self, dh):
+        """ Test the console system.
+        """
+        def test():
+            print("Creating console_queue: test")
+            console_queue = self.console_queues['test'] = queue.Queue()
+            console_queue.put("test line 0")
+
+            for i in range(1, 20):
+                time.sleep(random.uniform(0.2, 3))
+                console_queue.put(f"test line {i}")
+
+            console_queue.put(None)
+
+        threading.Thread(target=test).start()
+
+        # redirect to /console
+        dh.send_response(302)
+        dh.send_header('Location', '/console?id=test')
+        dh.end_headers()
+
+    def console(self, dh):
+        """ Essentially, it's like a browser-based console output that updates
+        in real time.
+
+        See docstring for RecommendationRequestHandler.readConsole
+        """
+        try:
+            id_ = dh.query_string['id'][0]
+        except KeyError:
+            dh.send_response(422)
+            return
+
+        self.send_html(dh,
+            html_generator.console(id_))
+
+        # at this point there should already be a thread updating
+        # self.console_queues[id_], so this method doesn't even need to worry
+        # about that.
+
+    def readConsole(self, dh):
+        """ An API call used by anything that wants to have scrolling text that
+        updates in real time.
+
+        Essentially, it's like a browser-based console output.
+
+        When the client requests to do something that requires a console
+        output, they're redirected to "/console?id=foo". (actual URL may have
+        been changed) From there, Javascript sends periodic requests for
+        "/readConsole?id=foo". Every time it requests this URL, it gets one of
+        three JSON responses:
+
+        Empty string (""): No new text to append to the console.
+        Non-empty string:  Append this text to the console.
+        null:              End of output. Stop requesting /readConsole because
+                           there's nothing left to get.
+        """
+        if 'id' in dh.query_string:
+            dh.send_response(200)
+            id_ = dh.query_string['id'][0]
+        else:
+            #TODO: There are a bunch of debug print statements scattered
+            # around. Clean them up before commiting.
+            print("ERROR INVALID ID BLAH BLAH DEBUG MESSAGE)")
+            dh.send_response(422)
+            # The 422 (Unprocessable Entity) status code means the server
+            # understands the content type of the request entity, and the
+            # syntax of the request entity is correct, but was unable to
+            # process the contained instructions.
+            # https://www.bennadel.com/blog/2434-http-status-codes-for-invalid-data-400-vs-422.htm
+
+            dh.send_header('Content-type', 'application/json')
+            dh.end_headers()
+            dh.wfile.write(
+                bytes('"Error: No \'id\' present in request."', 'utf8'))
+            return
+
+        dh.send_header('Content-type', 'application/json')
+        dh.end_headers()
+
+        # TODO: Have an error on invalid ID.
+        print("Reading from console_queue:", id_)
+        queue = self.console_queues[id_]
+        lines = []
+        dh.wfile.write(bytes("[", 'utf8'))
+
+        first_entry = True
+
+        # TODO: Just use a library to make the JSON.
+        while not queue.empty():
+            line = queue.get()
+
+            if line is None:
+                if not queue.empty():
+                    raise Exception(
+                        "A console_queue contains None but doesn't end there.")
+
+                line = "null"
+                print("Deleting console_queue:", id_)
+                del self.console_queues[id_]
+            else:
+                line = '"' + line + '"'
+
+            if first_entry:
+                first_entry = False
+            else:
+                line = ', ' + line
+
+
+            dh.wfile.write(bytes(line, 'utf8'))
+
+        # Overwrite final ',' with ']'. JSON doesn't allow trailing commas.
+        dh.wfile.write(bytes(']', 'utf8'))
 
     @requires_cache
     def hot(self, dh):

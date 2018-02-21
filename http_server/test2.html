@@ -2,30 +2,7 @@
   <head>
     <link rel="stylesheet" type="text/css" href="main.css">
 
-    <script type="text/javascript">
-      var outputConsole;
-
-      function scrollToBottom() {
-        outputConsole.scrollTop = outputConsole.scrollHeight;
-      }
-
-      function appendLines(lines) {
-        lines = lines.join('\n');
-
-        if (outputConsole.innerText === undefined ||
-            outputConsole.innerText === "") {
-          outputConsole.innerText = lines;
-        } else {
-          outputConsole.innerText += '\n' + lines;
-        }
-
-        scrollToBottom();
-      }
-
-      window.onload = function() {
-        outputConsole = document.getElementById("console");
-      }
-    </script>
+    <script type="text/javascript" src="/console.js"></script>
   </head>
   <body>
     <h1>Console Output</h1>

@@ -8,12 +8,14 @@ Generates HTML for use by the http server.
 
 
 def css_link():
+    # Template version available.
     doc = yattag.Doc()
     doc.stag('link', rel='stylesheet', type='text/css', href='/main.css')
     return doc.getvalue()
 
 
 def rating_page_for_post(post, message=None):
+    # Template version available.
     """
     A page where you can rate a single Hypnohub post.
     """
@@ -27,6 +29,7 @@ def rating_page_for_post(post, message=None):
                 doc.asis(f"var post_id = {post.id}")
 
             # TODO: Should not have to have 'with' or 'pass' here.
+            #       Also search elsewhere for more offenses.
             with doc.tag('script', type='text/javascript', src="/vote.js"):
                 pass
 
@@ -60,6 +63,7 @@ def rating_page_for_post(post, message=None):
 
 
 def path_index(paths_and_descriptions: List[Tuple[str, str]]):
+    # Template version available.
     doc, tag, text, line = yattag.Doc().ttl()
 
     with tag('html'):
@@ -101,7 +105,7 @@ def simple_message(paragraphs):
 
 
 def pre_message(string):
-    doc, tag, text, lin = yattag.Doc().ttl()
+    doc, tag, text, line = yattag.Doc().ttl()
 
     with tag('html'):
         with tag('head'):
@@ -110,5 +114,23 @@ def pre_message(string):
         with tag('body'):
             with tag('pre', klass='console_output'):
                 text(string)
+
+    return doc.getvalue()
+
+def console(id_):
+    doc, tag, text, line = yattag.Doc().ttl()
+
+    with tag('html'):
+        with tag('head'):
+            doc.asis(css_link())
+
+            with tag('script', type='text/javascript', src="/console.js"):
+                pass
+
+        with tag('body'):
+            line('h1', 'Console Output')
+
+            with tag('div', id='console'):
+                pass
 
     return doc.getvalue()
