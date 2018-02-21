@@ -13,6 +13,8 @@ rating_validator = validators.RegexValidator(
     code="invalid_rating",
 )
 
+def validate_url(type_):
+
 class Post(models.Model):
     id_num = models.PositiveIntegerField(
         db_column='id',
@@ -52,12 +54,35 @@ class Post(models.Model):
         max_length=32,
     )
 
-    md5 = models.CharField(
-        max_length=32,
-        unique=True,
-        validators=[md5_validator],
-        help_text="md5 hash of the full-sized(?) image. Used in the URL's for"
-        " the full-sized, preview, and sample images.",
+    # Even though Hypnohub gives URL's with no "http:", please add that on
+    # before saving anything to the database.
+    file_url = models.CharField(
+        max_length=64,
+        help_text='This is the "view larger version" image. Can have seemingly'
+        ' any extension. For images with no "view larger version", this is the'
+        ' main image.',
+    )
+
+    jpeg_url = models.CharField(
+        max_length=64,
+        blank=True, # TODO: Not actually sure if jpeg_url can be blank.
+        help_text="I'm pretty sure this is file_url but converted to jpg, if'
+        ' necessary.",
+    )
+
+    sample_url = models.CharField(
+        max_length=64,
+        blank=True,
+        help_text='This is what you see when you\'re on a page with a "view'
+        ' larger version". file_url is the larger version. On pages with no'
+        ' "view larger version", then you\'re shown the file_url instead.',
+    )
+
+    preview_url = models.CharField(
+        max_length=64,
+        # Pretty sure this one can't be blank.
+        help_text="This is what you see when you're looking at multiple images"
+        " on the same page.",
     )
 
     status = models.CharField(
@@ -73,8 +98,8 @@ class Post(models.Model):
         " be either 'active' or 'deleted'.",
     )
 
-    width  = models.PositiveIntegerField()
-    height = models.PositiveIntegerField()
+    def __str__(self):
+        return f"#{self.id_num} by {self.author}"
 
 class UserVote(models.Model):
     # TODO: Should have a validator checking if the Post exists or not.
@@ -96,3 +121,6 @@ class UserVote(models.Model):
             (-1, 'downvote'),
         ),
     )
+
+    def __str__(self):
+        return f"vote {self.vote_type:+} for #{self.post.id_num}"
