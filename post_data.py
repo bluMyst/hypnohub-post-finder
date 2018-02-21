@@ -15,24 +15,42 @@ Classes for storing data on Hypnohub posts.
 #   <post
 #     id="1337"
 #     tags="foo bar_(asdf) baz"
-#     score="0"
-#     rating="s" # [s]afe, [q]uestionable, [e]xplicite
+#     score="0" # probably can't be negative
+#     rating="s" # [s]afe, [q]uestionable, [e]xplicit
 #     author="foo"
 #
 #     md5="d74dced3bddd67137e14d084731bbc0f"
-#     file_url   = "//hypnohub.net//data/image/[md5 goes here].jpg"
+#
+#     Extension can for sure be jpg and gif. Probably png, too. My guess is
+#     this is the file that the user uploaded, verbatim, unprocessed.
+#     Btw, this is the "view larger version" image.
+#     file_url = "//hypnohub.net//data/image/[md5 goes here].[ext]"
+#
+#     I'm pretty sure this is file_url converted to a jpeg by Hypnohub, after
+#     upload.
+#
+#     Seems to always be a jpeg. Shown when HypnoHub is showing you a bunch of
+#     posts at once.
 #     preview_url= "//hypnohub.net//data/preview/[md5 goes here].jpg"
+#
+#     Sometimes doesn't exist? I guess it's only there for images where you can
+#     "view larger version" (which is the file_url)
 #     sample_url = "//hypnohub.net//data/sample/[md5 goes here].jpg"
-#     jpeg_url=always same as file_url
-#     Sometimes URLs end in .png instead.
 #
 #     status="active" or "deleted" maybe others
+#     change="0"
+#     source="url"
 #
-#     change="0" source="url" created_at="1465946415" creator_id="1337"
-#     md5 file_size="775434" is_shown_in_index="1"
-#     preview_width preview height
-#     actual_preview_width actual_preview_height sample_width
-#     sample_height sample_file_size="0" jpeg_width jpeg_height
+#     created_at="1465946415" # seconds since unix epoch
+#     creator_id="1337"
+#     file_size="775434" is_shown_in_index="1"
+#
+#     These are probably all positive integers:
+#     preview_width         preview height
+#     actual_preview_width  actual_preview_height
+#     sample_width          sample_height
+#
+#     sample_file_size="0" jpeg_width jpeg_height
 #     jpeg_file_size="0" width height
 #   />
 #
