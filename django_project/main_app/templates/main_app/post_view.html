@@ -8,8 +8,16 @@
                page.)
 
   Optional context:
-    None
+    tabtitle: defaults to "Post View"
 {% endcomment %}
+
+{% block title %}
+  ID: {{ post_id }}
+{% endblock %}
+
+{% block tabtitle %}
+  {{ tabtitle|default:"Post View" }}
+{% endblock %}
 
 {% block head %}
   <style>
@@ -220,10 +228,6 @@
       resetSaveButton();
     }
   </script>
-{% endblock %}
-
-{% block title %}
-  ID: {{ post_id }}
 {% endblock %}
 
 {% block content %}

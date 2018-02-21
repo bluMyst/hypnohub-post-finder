@@ -1,0 +1,28 @@
+{% extends "main_app/base.html" %}
+
+{% comment %}
+  Required context:
+    links: A list of (url name, description) to be shown to the user.
+
+  Optional context:
+    title (default: "Index")
+{% endcomment %}
+
+{# head, title, content #}
+{% block tabtitle %}
+  {{ title|default:"Index" }}
+{% endblock %}
+
+{% block title %}
+  {{ title|default:"Index" }}
+{% endblock %}
+
+{% block content %}
+  <ul>
+    {% for url_name, description in links %}
+      <li>
+        <a href="{% url url_name %}">{% url url_name %}</a>: {{ description }}
+      </li>
+    {% endfor %}
+  </ul>
+{% endblock %}

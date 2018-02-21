@@ -1,14 +1,27 @@
+{% comment %}
+  Required context:
+    title (default: "Index")
+{% endcomment %}
+
 <!DOCTYPE html>
 <html>
   <head>
     <link rel='stylesheet' type='text/css' href='/static/main_app/base.css'>
 
+    <title>
+      {% block tabtitle %}
+        {{ title }}
+      {% endblock %}
+    </title>
+
     {% block head %}{% endblock %}
   </head>
   <body>
-    {% block title %}
-      {{ title }}
-    {% endblock %}
+    <h1>
+      {% block title %}
+        {{ title }}
+      {% endblock %}
+    </h1>
 
     {% block content %}{% endblock %}
   </body>
