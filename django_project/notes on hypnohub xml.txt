@@ -1,0 +1,93 @@
+TODO: OH MY GOD THERE'S A /pool/index.xml THIS CHANGES EVERYTHING
+
+response XML looks like this:
+<posts count="1337" offset="num posts skipped by page">
+  <post foo asdf foo />
+  <post foo bar />
+
+  <post baz qux />
+</posts>
+
+Each post tag has the following attributes:
+
+------------------------------------------------------------------------------
+                          Attributes worth recording
+------------------------------------------------------------------------------
+
+id: Numerical ID of a post. Assigned by counting up from 1, but there are gaps
+    caused by deleted posts.
+
+status:
+    I've only seen three values for this one. "active", meaning the post is
+    viewable. "deleted", meaning it was deleted. And "flagged", meaning it's
+    been flagged for moderation but hasn't been deleted yet.
+
+tags: "foo bar_(asdf) baz"
+
+score: "12"
+    Comes from user's ratings. The higher, the better.
+
+rating: 's', 'q', or 'e'
+    [s]afe, [q]uestionable, [e]xplicit
+
+file_url: "//hypnohub.net//data/image/[md5 goes here].[ext]"
+    For images with a "view larger version", that's this URL. Otherwise, this
+    is the image shown to you by Hypnohub on an image page. The extension can
+    be seemingly anything. I've seen jpg and gif, but there's probably a lot
+    more. In fact, this is probably the file that the user originally uploaded,
+    verbatim.
+
+sample_url: "//hypnohub.net//data/sample/[md5 goes here].jpg"
+    Sometimes doesn't exist? I guess it's only there for images where you can
+    "view larger version" (which is the file_url)
+
+preview_url: "//hypnohub.net//data/preview/[md5 goes here].jpg"
+    Seems to always be a jpeg. Shown when HypnoHub is showing you a bunch of
+    posts at once.
+
+parent_id:
+    ID of the parent post. Not sure what this is if there's no parent post.
+    Probably null?
+
+
+------------------------------------------------------------------------------
+                              Useless attributes
+------------------------------------------------------------------------------
+
+created_at: In seconds since the Unix epoch.
+
+creator_id: I guess every user gets a unique number assigned to them.
+
+jpeg_url: I'm pretty sure this is file_url converted to a jpeg by Hypnohub,
+    after upload.
+
+source: URL of the source. (where the uploader got the image from)
+
+md5: An md5, probably of the original image. 32 characters of hex, lowercase.
+
+author: The username of the person who posted it.
+
+file_size: "775434"
+sample_file_size: "0"
+jpeg_file_size: "0"
+
+These are probably all positive integers:
+width                 height
+jpeg_width            jpeg_height
+sample_width          sample_height
+preview_width         preview height
+actual_preview_width  actual_preview_height
+
+------------------------------------------------------------------------------
+                           Un-understood attributes
+------------------------------------------------------------------------------
+
+is_shown_in_index: true
+    This one is almost always 'true'. But even if it's 'false', it still shows
+    up in searches and in any pool that it's in.
+    Example of false: ID# 60894
+
+These next ones always seem to have the same value. I've never seen them
+with a different one before. So it's hard to guess what they do:
+change=0
+is_held=false
