@@ -13,12 +13,7 @@ rating_validator = validators.RegexValidator(
     code="invalid_rating",
 )
 
-def validate_url(type_):
-    # TODO: validate_url
-    def validator(url):
-        pass
-
-    return validator
+# TODO: More validation!
 
 class Post(models.Model):
     id_num = models.PositiveIntegerField(
@@ -59,6 +54,9 @@ class Post(models.Model):
         max_length=32,
     )
 
+    # TODO: Just store one image url, because we only need to show the user the
+    # image at one size.
+
     # Even though Hypnohub gives URL's with no "http:", please add that on
     # before saving anything to the database.
     file_url = models.CharField(
@@ -66,13 +64,6 @@ class Post(models.Model):
         help_text='This is the "view larger version" image. Can have seemingly'
         ' any extension. For images with no "view larger version", this is the'
         ' main image.',
-    )
-
-    jpeg_url = models.CharField(
-        max_length=64,
-        blank=True, # TODO: Not actually sure if jpeg_url can be blank.
-        help_text="I'm pretty sure this is file_url but converted to jpg, if"
-        ' necessary.',
     )
 
     sample_url = models.CharField(
@@ -90,26 +81,18 @@ class Post(models.Model):
         " on the same page.",
     )
 
-    status = models.CharField(
-        # TODO: Figure out what the 'status' field means and give it a better
-        # description, better validators, and maybe make it a choice field.
-        max_length=32,
-
-        # Being as permissive as possible because I have no idea what to
-        # expect.
-        #blank=True,
-
-        help_text="I have no idea what this field does but it always seems to"
-        " be either 'active' or 'deleted'.",
+    parent = models.OneToOneField(
+        to='self',
+        related_name='child',
+        null=True,
+        on_delete=models.SET_NULL,
     )
 
     def __str__(self):
         return f"#{self.id_num} by {self.author}"
 
+
 class UserVote(models.Model):
-    # TODO: Should have a validator checking if the Post exists or not.
-    # Or! We should structure the database so that non-existent Posts aren't
-    # saved. I mean, they *are* kinda useless.
     post = models.OneToOneField(
         to=Post,
         related_name='vote',

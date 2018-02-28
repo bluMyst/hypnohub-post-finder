@@ -1,14 +1,20 @@
-TODO: OH MY GOD THERE'S A /pool/index.xml THIS CHANGES EVERYTHING
+A quick note about /pool/index.xml and /pool/show.xml:
+
+Don't get your hopes up. `index.xml` is basically useless and `show.xml` looks
+like it's bugged, because it's always a blank page. Even if you feed it
+perfectly valid parameters.
+
+==============================================================================
+                                /post/index.xml
+==============================================================================
 
 response XML looks like this:
-<posts count="1337" offset="num posts skipped by page">
+<posts count="<some large number>" offset="<num posts skipped by page>">
   <post foo asdf foo />
   <post foo bar />
 
   <post baz qux />
 </posts>
-
-Each post tag has the following attributes:
 
 ------------------------------------------------------------------------------
                           Attributes worth recording
@@ -17,18 +23,17 @@ Each post tag has the following attributes:
 id: Numerical ID of a post. Assigned by counting up from 1, but there are gaps
     caused by deleted posts.
 
-status:
-    I've only seen three values for this one. "active", meaning the post is
-    viewable. "deleted", meaning it was deleted. And "flagged", meaning it's
-    been flagged for moderation but hasn't been deleted yet.
-
 tags: "foo bar_(asdf) baz"
+    Separated by spaces. Can contain underscores and parens, but I don't think
+    you can have any other type of character in them.
 
 score: "12"
     Comes from user's ratings. The higher, the better.
 
 rating: 's', 'q', or 'e'
     [s]afe, [q]uestionable, [e]xplicit
+
+author: The username of the person who posted it.
 
 file_url: "//hypnohub.net//data/image/[md5 goes here].[ext]"
     For images with a "view larger version", that's this URL. Otherwise, this
@@ -46,8 +51,24 @@ preview_url: "//hypnohub.net//data/preview/[md5 goes here].jpg"
     posts at once.
 
 parent_id:
-    ID of the parent post. Not sure what this is if there's no parent post.
-    Probably null?
+    ID of the parent post. For posts without a parent, this doesn't exist.
+
+TODO: Search for any attributes other than these, that maybe only certain posts
+have.
+
+
+------------------------------------------------------------------------------
+                          Attributes worth examining
+------------------------------------------------------------------------------
+
+status:
+    After 38,000 posts, I've only seen three values for this one. "active",
+    meaning the post is viewable. "deleted", meaning it was deleted. And
+    "flagged", meaning it's been flagged for moderation but hasn't been deleted
+    yet.
+
+    The way we should treat this field is just to not save anything that isn't
+    "active".
 
 
 ------------------------------------------------------------------------------
@@ -65,29 +86,30 @@ source: URL of the source. (where the uploader got the image from)
 
 md5: An md5, probably of the original image. 32 characters of hex, lowercase.
 
-author: The username of the person who posted it.
-
 file_size: "775434"
 sample_file_size: "0"
 jpeg_file_size: "0"
+    Probably in bytes.
 
-These are probably all positive integers:
+
+------------------------------------------------------------------------------
+                           Un-understood attributes
+------------------------------------------------------------------------------
+
+is_shown_in_index: "1"
+    This one is almost always '1'. But even if it's '0', it still shows
+    up in searches and in any pool that it's in.
+    In JSON this is 'true' and 'false'.
+    Example of '0': ID# 60894
+
 width                 height
 jpeg_width            jpeg_height
 sample_width          sample_height
 preview_width         preview height
 actual_preview_width  actual_preview_height
 
-------------------------------------------------------------------------------
-                           Un-understood attributes
-------------------------------------------------------------------------------
 
-is_shown_in_index: true
-    This one is almost always 'true'. But even if it's 'false', it still shows
-    up in searches and in any pool that it's in.
-    Example of false: ID# 60894
+==============================================================================
+                                /pool/index.xml
+==============================================================================
 
-These next ones always seem to have the same value. I've never seen them
-with a different one before. So it's hard to guess what they do:
-change=0
-is_held=false
