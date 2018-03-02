@@ -26,7 +26,7 @@ def rating_page_for_post(post, message=None):
             with doc.tag('script', type='text/javascript'):
                 doc.asis(f"var post_id = {post.id}")
 
-            # TODO: Should not have to have 'with' or 'pass' here.
+            # TO_DO: Should not have to have 'with' or 'pass' here.
             with doc.tag('script', type='text/javascript', src="/vote.js"):
                 pass
 

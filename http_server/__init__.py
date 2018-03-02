@@ -151,7 +151,7 @@ def requires_cache(f):
     Basically, this is a decorator to give a user-friendly error screen instead
     of crashing.
     """
-    # TODO: You should be able to update the cache from the web interface, and
+    # TO_DO: You should be able to update the cache from the web interface, and
     # this decorator should give you the option to do so.
     def new_f(self, dh, *args, **kwargs):
         if self.dataset.cache_empty:
@@ -168,7 +168,7 @@ class RecommendationRequestHandler(AhtoRequestHandler):
     def __init__(self, *args, **kwargs):
         super(RecommendationRequestHandler, self).__init__(*args, **kwargs)
 
-        # TODO: API url's should start with /api/
+        # TO_DO: API url's should start with /api/
         # Can our url-parser handle multiple levels of directory like that?
 
         self.PATHS = {

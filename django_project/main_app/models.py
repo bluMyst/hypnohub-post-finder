@@ -13,6 +13,10 @@ rating_validator = validators.RegexValidator(
     code="invalid_rating",
 )
 
+# NOTE: Postgres (and probably most other SQL servers) doesn't compress its
+# database file, so we might have to be careful about how efficiently we store
+# data.
+
 # TODO: More validation!
 
 class Post(models.Model):

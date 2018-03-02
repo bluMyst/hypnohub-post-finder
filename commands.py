@@ -9,7 +9,7 @@ Takes a command from sys.argv. Basically a low-level CLI frontend to the rest
 of my code, for doing things that you can't yet do from HTTP.
 """
 
-# TODO: Everything here should be possible from within the HTTP interface.
+# TO_DO: Everything here should be possible from within the HTTP interface.
 #
 # Update:
 # - How do we keep the user updated on our progress? This command could take a
