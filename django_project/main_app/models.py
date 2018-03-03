@@ -92,6 +92,29 @@ class Post(models.Model):
         on_delete=models.SET_NULL,
     )
 
+    @classmethod
+    def from_json(cls, parsed_json):
+        """
+        Raises Post.DoesNotExist if parsed_json has a 'parent' attribute that
+        refers to a post that isn't in the database.
+        """
+        post = cls(
+            id_num      = parsed_json['id'],
+            tags        = parsed_json['tags'],
+            score       = parsed_json['score'],
+            rating      = parsed_json['rating'],
+            author      = parsed_json['author'],
+            file_url    = 'http:' + parsed_json['file_url'],
+            sample_url  = 'http:' + parsed_json['sample_url'],
+            preview_url = 'http:' + parsed_json['preview_url'],
+        )
+
+        if 'parent' in parsed_json:
+            post.parent = cls.objects.get(
+                id_num__exact=post['id'])
+
+        return post
+
     def __str__(self):
         return f"#{self.id_num} by {self.author}"
 
