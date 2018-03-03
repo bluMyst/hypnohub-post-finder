@@ -1,7 +1,5 @@
 import sys
 
-import post_data
-import ahto_lib
 import hhapi
 
 """
@@ -9,7 +7,8 @@ Takes a command from sys.argv. Basically a low-level CLI frontend to the rest
 of my code, for doing things that you can't yet do from HTTP.
 """
 
-# TO_DO: Everything here should be possible from within the HTTP interface.
+# TODO: It should never be necessary to run any of these commands manually.
+# Make each one obsolete, and then remove them.
 #
 # Update:
 # - How do we keep the user updated on our progress? This command could take a
@@ -28,6 +27,9 @@ of my code, for doing things that you can't yet do from HTTP.
 # Check deleted:
 # - This will require some complex-ish communications between client and
 #   server. We might have to store a cookie to know who is who.
+
+# TODO: Most of these commands won't work in Django and need to be updated.
+#       In fact, you can't run any of these in the command line.
 
 
 class CommandHandler(object):
@@ -58,17 +60,26 @@ class CommandHandler(object):
                 f = getattr(self, i)
                 print('-', f.__doc__)
 
-    @ahto_lib.lazy_property
-    def dataset(self):
-        return post_data.Dataset()
+    @property
+    def har(self):
+        if hasattr(self, 'har_'):
+            return self.har_
+        else:
+            self.har_ = hhapi.HypnohubAPIRequester()
+            return self.har
 
     def do_update(self, args):
         '''update: Update the Hypnohub cache.'''
+        # TODO: Turn this into a manage.py command.
+        # https://docs.djangoproject.com/en/2.0/howto/custom-management-commands/
         self.dataset.update_cache(print_progress=True)
         self.dataset.save()
 
     def do_reset(self, args):
         '''reset: Clear the Hypnohub cache.'''
+        # NOTE: It should never be necessary to do this, except when updating
+        # the Posts in the database. Even then, let's do it intelligently, by
+        # looking for gaps in Post id's.
         if ahto_lib.yes_no(False, "Reset cache? Are you sure?"):
             print("Erasing cache...")
             self.dataset.cache = {}
@@ -78,6 +89,7 @@ class CommandHandler(object):
 
     def do_record_votes(self, args):
         '''record_votes <user>: Add a user's votes to the dataset.'''
+        # TODO: Users should be able to do this by themselves.
         user = args[0]
 
         print("WARNING: This cannot be undone!")
@@ -106,6 +118,10 @@ class CommandHandler(object):
 
     def do_check_deleted(self, args):
         '''check_deleted: Check if any cached posts have been deleted.'''
+        # TODO: This should be an automatic part of the Post update process.
+        # While Posts are being updated, the update code should look for Posts
+        # that aren't on Hypnohub and remove any databse entries for those
+        # Posts.
         self.dataset.update_cache(print_progress=True)
 
         for post_id in self.dataset.good | self.dataset.bad:

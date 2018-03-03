@@ -56,6 +56,9 @@ parent_id:
 TODO: Search for any attributes other than these, that maybe only certain posts
 have.
 
+TODO: This is for XML, but hhapi parses from JSON which has totally different
+attributes. Gotta change this whole file. :/
+
 
 ------------------------------------------------------------------------------
                           Attributes worth examining
