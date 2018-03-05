@@ -1,6 +1,8 @@
 Overall design:
 
-[X] Automatically cache every post on Hypnohub and save all relevant info.
+[ ] Automatically cache every post on Hypnohub and save all relevant info.
+    [X] Automatically update existing posts with new info.
+    [ ] Automatically delete posts to match deletions on HypnoHub.
 [ ] Let users create accounts and log in.
     [ ] Let users recover their passwords via email.
     [ ] Put a "[username] - log out" on every page in the upper-right corner.
