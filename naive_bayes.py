@@ -4,25 +4,6 @@ from typing import List
 
 import post_data
 
-""" Here's what's going on:
-
-I want to show the user posts based on a Naive Bayes Classifier's best guess
-on how they'll like it.
-
-However, the script can also be started in a "training" mode where we'll ask
-the user what they think of totally random posts. They can either thumb them
-up or thumb them down, and we'll add them to the dataset.
-
-I don't want to have the user vote on stuff that the Classifier is
-predicting the user will like, because it seems like we'd start having a
-biased dataset. We should find out for sure, though.
-
-We need to make sure that ID's all stay the same no matter what. Can probably
-just ask. Seems likely, because of all those deleted posts and blank spots in
-the ID list.
-"""
-
-
 class NaiveBayesClassifier(object):
     """
     Give it some Post's with tags and it'll try to guess which ones you'll like
@@ -182,22 +163,3 @@ class NaiveBayesClassifier(object):
             temp = self.single_tag_predict(tag, temp)
 
         return temp
-
-
-def split_dataset(dataset, split_ratio=0.33):
-    """
-    Split a dataset between data used for training and data used for testing
-    the algorithm after training is complete.
-
-    Split ratio: What portion is used for training data?
-    """
-    # I definitely won't be using this as-is, but it's nice to have as a
-    # reference for later.
-    train_size = math.round(len(dataset) * split_ratio)
-
-    copy = dataset[:]
-    random.shuffle(copy)
-    train_set = copy[:train_size]
-    test_set  = copy[train_size:]
-
-    return train_set, test_set
