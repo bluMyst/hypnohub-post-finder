@@ -15,6 +15,16 @@ Overall design:
 [ ] Show users posts based on their previous votes
     [ ] Refactor and rewrite the Bayes Classifier to work with the new code and
         access the database.
+    [ ] Allow users to sort posts in the following sorting methods:
+        [ ] Best: Post rating, descending.
+        [ ] Hot: Get the highest rating, and randomly pick posts within x% of
+            that rating, such that there are a good number of posts to sort
+            through.
+        [ ] Random: Literally just a random Post.
+    [ ] Create a PostRating model that stores a post, a user, and a float.
+    [ ] Create a command to update PostRatings, for putting in crontab. (don't
+        recalculate them on every vote, because that's way too inefficient)
+    [ ] Delete PostRatings as soon as a Vote points to their associated Post.
 [ ] Let users import their existing votes from Hypnohub
     [ ] Create a form for this. On submit, the user will get a message like
         "Processing your request now. It may take a while before your posts are
