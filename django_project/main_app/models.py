@@ -20,7 +20,10 @@ rating_validator = validators.RegexValidator(
 # TODO: More validation!
 
 class Post(models.Model):
-    id_num = models.PositiveIntegerField(
+    def __str__(self):
+        return f"#{self.id} by {self.author}"
+
+    id = models.PositiveIntegerField(
         db_column='id',
         primary_key=True,
         help_text="A unique ID. Starts counting at one and is just incremented"
@@ -99,7 +102,7 @@ class Post(models.Model):
         refers to a post that isn't in the database.
         """
         post = cls(
-            id_num      = parsed_json['id'],
+            id          = parsed_json['id'],
             tags        = parsed_json['tags'],
             score       = parsed_json['score'],
             rating      = parsed_json['rating'],
@@ -111,12 +114,13 @@ class Post(models.Model):
 
         if 'parent' in parsed_json:
             post.parent = cls.objects.get(
-                id_num__exact=post['id'])
+                id__exact=post['id'])
 
         return post
 
-    def __str__(self):
-        return f"#{self.id_num} by {self.author}"
+    @property
+    def page_url(self):
+        return f"http://hypnohub.net/post/show/{self.id}"
 
 
 class UserVote(models.Model):
@@ -138,4 +142,4 @@ class UserVote(models.Model):
     )
 
     def __str__(self):
-        return f"vote {self.vote_type:+} for #{self.post.id_num}"
+        return f"vote {self.vote_type:+} for #{self.post.id}"

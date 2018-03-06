@@ -52,7 +52,7 @@ class Command(BaseCommand):
                 for deleted_id in range(prev_post_id+1, post_id):
                     try:
                         to_delete = Post.objects.get(
-                            id_num__exact=deleted_id)
+                            id__exact=deleted_id)
                     except Post.DoesNotExist:
                         pass
                     else:
