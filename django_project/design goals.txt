@@ -1,5 +1,7 @@
 Overall design:
 
+[ ] Unit test everything below.
+
 [ ] Automatically cache every post on Hypnohub and save all relevant info.
     [X] Automatically update existing posts with new info.
     [ ] Automatically delete posts to match deletions on HypnoHub.
