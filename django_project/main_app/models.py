@@ -27,20 +27,17 @@ class Post(models.Model):
         db_column='id',
         primary_key=True,
         help_text="A unique ID. Starts counting at one and is just incremented"
-        " with every post.",
-    )
+        " with every post.")
 
     tags = models.TextField(
         blank=True, # Though very unlikely, it *is* possible.
         help_text="Separated by single spaces. Can contain parenthesis,"
-        " underscores, and probably other special characters.",
-    )
+        " underscores, and probably other special characters.")
 
     score = models.PositiveIntegerField(
         help_text="The score given to this post by users voting on it and"
         " favoriting it. A 'good' is +1, 'great' is +2, and favoriting is +3."
-        " Probably can't be negative.",
-    )
+        " Probably can't be negative.")
 
     rating = models.CharField(
         "content rating",
@@ -54,12 +51,10 @@ class Post(models.Model):
         ),
 
         help_text="HypnoHub returns it as 's', 'q', or 'e' so that's how we"
-        " store it.",
-    )
+        " store it.")
 
     author = models.CharField(
-        max_length=32,
-    )
+        max_length=32)
 
     # TODO: Just store one image url, because we only need to show the user the
     # image at one size.
@@ -70,53 +65,26 @@ class Post(models.Model):
         max_length=64,
         help_text='This is the "view larger version" image. Can have seemingly'
         ' any extension. For images with no "view larger version", this is the'
-        ' main image.',
-    )
+        ' main image.')
 
     sample_url = models.CharField(
         max_length=64,
         blank=True,
         help_text='This is what you see when you\'re on a page with a "view'
         ' larger version". file_url is the larger version. On pages with no'
-        ' "view larger version", then you\'re shown the file_url instead.',
-    )
+        ' "view larger version", then you\'re shown the file_url instead.')
 
     preview_url = models.CharField(
         max_length=64,
         # Pretty sure this one can't be blank.
         help_text="This is what you see when you're looking at multiple images"
-        " on the same page.",
-    )
+        " on the same page.")
 
     parent = models.OneToOneField(
         to='self',
         related_name='child',
         null=True,
-        on_delete=models.SET_NULL,
-    )
-
-    @classmethod
-    def from_json(cls, parsed_json):
-        """
-        Raises Post.DoesNotExist if parsed_json has a 'parent' attribute that
-        refers to a post that isn't in the database.
-        """
-        post = cls(
-            id          = parsed_json['id'],
-            tags        = parsed_json['tags'],
-            score       = parsed_json['score'],
-            rating      = parsed_json['rating'],
-            author      = parsed_json['author'],
-            file_url    = 'http:' + parsed_json['file_url'],
-            sample_url  = 'http:' + parsed_json['sample_url'],
-            preview_url = 'http:' + parsed_json['preview_url'],
-        )
-
-        if 'parent' in parsed_json:
-            post.parent = cls.objects.get(
-                id__exact=post['id'])
-
-        return post
+        on_delete=models.SET_NULL)
 
     @property
     def page_url(self):

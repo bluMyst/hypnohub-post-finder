@@ -7,8 +7,12 @@ import requests
 BASE_USERAGENT = "AhtoHypnohubCrawlerBot/0.0"
 USERAGENT = BASE_USERAGENT + " (mailto://weirdusername@techie.com)"
 
-# Be very polite to the server.
-DELAY_BETWEEN_REQUESTS = 2
+# Try to be polite to the server
+# A request is heavy if it gets more than 100 results back. Everything else
+# (including robots.txt) is a light request.
+DELAY_BETWEEN_LIGHT_REQUESTS =   1
+DELAY_BETWEEN_HEAVY_REQUESTS =   5
+MAX_POSTS_PER_REQUEST        = 500
 
 """
 This file is for communicating with the Hypnohub API (hence the name) and
@@ -17,7 +21,7 @@ processing Hypnohub's responses.
 http://hypnohub.net/help/api
 """
 
-class HypnohubAPIRequester(object):
+class HypnohubAPIRequester:
     def __init__(self):
         self.check_robots_txt()
 
@@ -34,7 +38,7 @@ class HypnohubAPIRequester(object):
 
         rp.read()
 
-        time.sleep(DELAY_BETWEEN_REQUESTS)
+        time.sleep(DELAY_BETWEEN_LIGHT_REQUESTS)
 
         robots_allowed = rp.can_fetch(
             BASE_USERAGENT,
@@ -46,7 +50,26 @@ class HypnohubAPIRequester(object):
         if not robots_allowed:
             raise EnvironmentError("robots.txt disallowed us!")
 
-    def get_posts(self, tags=None, page=None, limit=200):
+    def process_post(self, post):
+        """
+        Given a parsed JSON post from HypnoHub, process the attributes in such
+        a way that they're more usable and understandable.
+
+        For example, add 'http:' to the left side of URL's. And, if 'parent'
+        isn't sent, set it to None (which will become NULL once it enters the
+        database).
+        """
+
+        file_url    = 'http:' + post['file_url']
+        sample_url  = 'http:' + post['sample_url']
+        preview_url = 'http:' + post['preview_url']
+
+        if 'parent' not in post:
+            post['parent'] = None
+
+        return post
+
+    def get_posts(self, tags=None, page=None, limit=MAX_POSTS_PER_REQUEST):
         """
         Returns a list of dicts, parsed straight from the JSON. One for each
         post.
@@ -67,6 +90,9 @@ class HypnohubAPIRequester(object):
         Also remember that 'tags' actually takes a string of search terms, just
         like on the actual website.
         """
+        if limit > MAX_POSTS_PER_REQUEST:
+            raise ValueError("limit can't be > MAX_POSTS_PER_REQUEST")
+
         params = {}
         if page is not None:
             params['page'] = page
@@ -83,9 +109,14 @@ class HypnohubAPIRequester(object):
             headers={'User-agent': USERAGENT}
         )
 
-        time.sleep(DELAY_BETWEEN_REQUESTS)
+        response = json.loads(response.text)
 
-        return json.loads(response.text)
+        if len(response) > 100:
+            time.sleep(DELAY_BETWEEN_HEAVY_REQUESTS)
+        else:
+            time.sleep(DELAY_BETWEEN_LIGHT_REQUESTS)
+
+        return map(self.process_post, response)
 
     def get_all_matching_posts(self, tags=None):
         """
@@ -111,27 +142,33 @@ class HypnohubAPIRequester(object):
 
     def get_highest_id(self):
         # id_desc is the default order but I'm setting it just to be safe.
-        return self.get_posts('order:id_desc', limit=1)[0]['id']
+        return next(self.get_posts('order:id_desc', limit=1))['id']
 
-    def get_complete_post_list(self):
+    def print_while_fetching(self, tags='', printer=None):
         """
-        yields (new_posts, highest_id_seen, highest_id_in_hypnohub)
+        This function is designed for crawling through enormous numbers of
+        HypnoHub posts, and printing your progress as you go. Specifically,
+        it's designed to crawl through all of HypnoHub, all in one go.
 
-        new_posts is a list of posts, usually 100 of them
+        Returns an iterator of parsed-JSON posts, just like get_posts().
 
-        The last two args are for progress bars and such.
+        You can set tags to whatever you want, as long as you don't change the
+        order.
 
-        It's completely fine to use get_all_matching_posts for the same purpose
-        as this function. The only difference is this one yields values in a
-        different way, and won't let you set a 'tags' value.
+        printer
+            Args: (highest_id_seen, highest_id_in_hypnohub)
+
+            Will get called every time we complete a new HTTP request. The idea
+            is you can use it to update a loading bar, or print to the screen.
         """
+        tags += " order:id"
         current_page    = 1
         highest_id_seen = None
 
         highest_id = self.get_highest_id()
 
         while True:
-            new_posts = self.get_posts(tags="order:id", page=current_page)
+            new_posts = list(self.get_posts(tags, current_page))
             current_page += 1
 
             if len(new_posts) == 0:
@@ -139,4 +176,7 @@ class HypnohubAPIRequester(object):
 
             highest_id_seen = new_posts[-1]['id']
 
-            yield new_posts, highest_id_seen, highest_id
+            if printer is not None:
+                printer(highest_id_seen, highest_id)
+
+            yield from new_posts
