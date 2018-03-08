@@ -15,8 +15,7 @@ class NaiveBayesClassifier(object):
     How it works:
 
     Well first of all, let's talk about syntax. Math is INCREDIBLY hard to do
-    in UTF-8, or really any computerized format, so I'm just going to make some
-    stuff up:
+    in UTF-8, so I'm just going to make some stuff up:
 
     syntax         | meaning
     P(A)           | The probability of statement 'A' being true.
@@ -34,7 +33,7 @@ class NaiveBayesClassifier(object):
     the statement "this post is good", and 'T0' is the statement "this post
     has tag number 0".
 
-    P(G| 0) = P(T0|G) * P(G) / P(T0)
+    P(G|T0) = P(T0|G) * P(G) / P(T0)
 
     This would work really well if we only had one tag to deal with, but
     let's say we're looking at a Post with "n" tags: T0, T1, T2, ..., Tn
