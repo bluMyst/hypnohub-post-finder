@@ -1,5 +1,6 @@
 import queue
 import itertools
+import time
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
@@ -62,7 +63,7 @@ class Command(BaseCommand):
         # through everything. But probably longer, because that doesn't include
         # the time it takes to munch on each batch of 200 posts.
         self.stdout.write(
-            "Getting post data: (this part is going to take 10+ minutes)")
+            "Getting post data: (this will take about 10 minutes)")
 
         made_progress = False
         posts = []
@@ -71,8 +72,9 @@ class Command(BaseCommand):
             # Unfortunately, if you do the \r, ending='' trick to update the
             # same line, it'll mess up anything that save_all_posts tries to
             # print.
+            timestamp = time.strftime("%H:%M:%S")
             self.stdout.write(
-                f"Downloading... {highest_id_seen:5}/{highest_id}")
+                f"{timestamp} Downloading... {highest_id_seen:5}/{highest_id}")
 
         _, temporary_orphans = self.save_all_posts(
             har.print_while_fetching(printer=printer_callback))

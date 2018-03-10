@@ -2,14 +2,15 @@ Overall design:
 
 [ ] Unit test everything below.
 
-[ ] Automatically cache every post on Hypnohub and save all relevant info.
+[X] Automatically cache every post on Hypnohub and save all relevant info.
     [X] Automatically update existing posts with new info.
-    [ ] Automatically delete posts to match deletions on HypnoHub.
+    [X] Automatically delete posts to match deletions on HypnoHub.
+
 [ ] Let users create accounts and log in.
     [ ] Let users recover their passwords via email.
     [ ] Put a "[username] - log out" on every page in the upper-right corner.
         [ ] Create /logout
-[ ] Don't let users access certain pages unless they're logged in.
+    [ ] Don't let users access certain pages unless they're logged in.
 [ ] Have a simple "home" button or something like that, to lead them to an
     index page.
 [ ] Let users vote on each post individually.
@@ -50,6 +51,7 @@ Overall design:
     [ ] Add a "permalink: [url]" textbox somewhere in the image viewer, with a
         "copy to clipboard" button.
 [ ] Every page should be styled consistently.
+
 
 Long-term goals (for when this is a real website being hosted somewhere):
 

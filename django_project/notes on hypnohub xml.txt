@@ -37,14 +37,14 @@ author: The username of the person who posted it.
 
 file_url: "//hypnohub.net//data/image/[md5 goes here].[ext]"
     For images with a "view larger version", that's this URL. Otherwise, this
-    is the image shown to you by Hypnohub on an image page. The extension can
-    be seemingly anything. I've seen jpg and gif, but there's probably a lot
-    more. In fact, this is probably the file that the user originally uploaded,
-    verbatim.
+    is the image shown to you by Hypnohub on an image page (and sample_url will
+    be identical to file_url). The extension can be seemingly anything. I've
+    seen jpg and gif, but there's probably a lot more. In fact, this is
+    probably the file that the user originally uploaded, verbatim.
 
 sample_url: "//hypnohub.net//data/sample/[md5 goes here].jpg"
-    Sometimes doesn't exist? I guess it's only there for images where you can
-    "view larger version" (which is the file_url)
+    For posts with no "view larger version", this is the same as file_url.
+    Otherwise, this is the smaller version shown to you on the Hypnohub page.
 
 preview_url: "//hypnohub.net//data/preview/[md5 goes here].jpg"
     Seems to always be a jpeg. Shown when HypnoHub is showing you a bunch of

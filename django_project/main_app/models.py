@@ -47,14 +47,9 @@ class Post(models.Model):
         choices=(
             ('s', 'safe'),
             ('q', 'questionable'),
-            ('e', 'explicit'),
-        ),
+            ('e', 'explicit')))
 
-        help_text="HypnoHub returns it as 's', 'q', or 'e' so that's how we"
-        " store it.")
-
-    author = models.CharField(
-        max_length=32)
+    author = models.CharField(max_length=32)
 
     # TODO: Just store one image url, because we only need to show the user the
     # image at one size.
