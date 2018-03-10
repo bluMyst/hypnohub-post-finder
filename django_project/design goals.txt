@@ -64,6 +64,8 @@ Long-term goals (for when this is a real website being hosted somewhere):
 [ ] Make sure it's secure. Sounds so simple, doesn't it? At the very least,
     there are probably guides online that can give me a checklist of common
     mistakes.
+[ ] Find the best way to automatically run update_cache. Either add it to
+    crontab, or have Django check on every page load if it needs to be updated.
 
 TODO: This whole file is one giant todo.
       Just a note to self for when I'm running "git grep -i todo".
