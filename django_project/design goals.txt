@@ -9,6 +9,10 @@ Overall design:
     [X] Add a "permalink: [url]" textbox somewhere in the image viewer, with a
         "copy to clipboard" button.
 
+[ ] Make sure users get the latest version of files.
+    [ ] What's going on with all this local caching stuff? How can I control
+        it?
+
 [ ] Let users create accounts and log in.
     [ ] Let users recover their passwords via email.
     [ ] Put a "[username] - log out" on every page in the upper-right corner.
