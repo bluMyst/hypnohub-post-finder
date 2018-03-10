@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.http import Http404
 
 from .models import Post
 
@@ -31,7 +32,6 @@ def main_menu(request):
                   context=context)
 
 def view_id(request, id, **context):
-    # TODO: Error page on invalid id.
     context['post'] = Post.objects.get(id=id)
 
     return render(template_name='main_app/post_view.html',
@@ -39,6 +39,11 @@ def view_id(request, id, **context):
                   context=context)
 
 def permalink(request, id):
+    try:
+        post = Post.objects.get(id=id)
+    except Post.DoesNotExist:
+        raise Http404('Post ID not found: ' + str(id))
+
     context = {'tabtitle': str(Post.objects.get(id=id)) + ' (permalink)'}
     return view_id(request, id, **context)
 
