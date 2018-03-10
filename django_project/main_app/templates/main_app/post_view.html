@@ -17,25 +17,31 @@
 {% endblock %}
 
 {% block head %}
-  <style>
-    /* TODO: Dynamically (with Javascript) set the image's width and height
-       depending on the aspect ratio of the image and the aspect ratio of the
-       user's window. */
-    .rating_image {
-      width: 95%;
-    }
+<!--
+  TODO: Everything in here is horribly hacky and barely works. I should just
+  learn html and CSS already, I guess. As frustrating as they are to work with.
+-->
 
-    .vote_controls {
-      float: left;
-      background: #222;
-      width: 5%;
+  <style>
+    /* https://i.imgur.com/Q3cUg29.gif */
+
+    .image_container {
+      /* center the image */
       text-align: center;
     }
 
+    .main_image {
+      max-width: 95%;
+      max-height: 100%;
+    }
+
     .vote {
-      display: block;
       text-decoration: none;
-      font-size: 4em;
+      font-size: 1em;
+    }
+
+    .vote.upvote {
+      margin-right: 0.5em;
     }
 
     .vote.inactive {
@@ -67,22 +73,24 @@
 {% endblock %}
 
 {% block content %}
-  <p>A (up) and Z (down) to vote.</p>
-
-  <div id="save_button">enable javascript to save</div>
-  <div class="permalink_area">
-    permalink: <input id='permalink_textbox' readonly value="{{ post.permalink }}">
-    <a href="#" id="copy_permalink">copy</a>
-  </div>
-
-  <div class="voting_area">
-    <div class="vote_controls">
-      <a href="#" class="vote upvote inactive">   /\ </a>
-      <a href="#" class="vote downvote inactive"> \/ </a>
+  <div class="content">
+    <div id="save_button">enable javascript to save</div>
+    <div class="permalink_area">
+      <p>
+        permalink: <input id='permalink_textbox' readonly value="{{ post.permalink }}">
+        <a href="#" id="copy_permalink">copy</a>
+      </p>
     </div>
 
-    <a href="http://hypnohub.net/post/show/{{ post.id }}/">
-      <img src="{{ post.sample_url }}" class="rating_image"/>
-    </a>
+    <a href="#" class="vote upvote inactive">upvote</a>
+    <a href="#" class="vote downvote inactive">downvote</a>
+
+    <p>You can use A (up) and Z (down) to vote.</p>
+
+    <div class="image_container">
+      <a href="http://hypnohub.net/post/show/{{ post.id }}/">
+        <img src="{{ post.sample_url }}" class="main_image portrait"/>
+      </a>
+    </div>
   </div>
 {% endblock %}
