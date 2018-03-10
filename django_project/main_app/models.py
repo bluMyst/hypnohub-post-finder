@@ -1,3 +1,5 @@
+import re
+
 from django.db import models
 from django.urls import reverse
 
@@ -5,20 +7,51 @@ from django.core.exceptions import ValidationError
 from django.core import validators
 
 md5_validator = validators.RegexValidator(
-    regex="^[0-9a-fA-F]{32}$",
-    code="invalid_md5",
-)
+    regex="^[0-9a-f]{32}$",
+    flags=re.IGNORECASE,
+    code="invalid md5")
 
 rating_validator = validators.RegexValidator(
     regex="^[sqe]$",
-    code="invalid_rating",
-)
+    code="invalid rating")
+
+image_url_validator = validators.RegexValidator(
+    regex="""
+        ^
+
+        # Images aren't given over SSL yet, but they might change that in the
+        # future.
+        https?://
+
+        hypnohub.net
+
+        # If you don't put a second slash in the URL, Hypnohub will still know
+        # what you mean. But it'll never give you an image URL without that
+        # second slash, so there's probably a reason for it.
+        //?
+
+        data/
+
+        # This part seems to always be 'preview', 'sample', or 'file'. But I'm
+        # not going to be so strict with validation.
+        [a-z0-9_-]+/
+
+        # The md5 hash of the post.
+        [0-9a-f]{32}
+
+        # So far the only file extensions I've run across are .jpg, .gif, and
+        # .png, but I'm trying to be very permissive in case Hypnohub changes
+        # something.
+        \.\w+
+
+        $
+    """,
+    flags=re.IGNORECASE & re.VERBOSE,
+    code="invalid image url")
 
 # NOTE: Postgres (and probably most other SQL servers) doesn't compress its
 # database file, so we might have to be careful about how efficiently we store
 # data.
-
-# TODO: More validation!
 
 class Post(models.Model):
     def __str__(self):
@@ -52,10 +85,7 @@ class Post(models.Model):
 
     author = models.CharField(max_length=32)
 
-    # TODO: Just store one image url, because we only need to show the user the
-    # image at one size.
-
-    # Even though Hypnohub gives URL's with no "http:", please add that on
+    # Even though Hypnohub gives URL's with no "http:", you need to add that on
     # before saving anything to the database.
     file_url = models.CharField(
         max_length=64,
