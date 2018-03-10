@@ -14,6 +14,16 @@ Overall design:
     index page.
 [ ] Let users vote on each post individually.
     [ ] Create /api/vote
+[ ] Have a /stats page to show users info about their votes and preferences.
+    [ ] Show total upvotes and total downvotes
+    [ ] Show the percent of posts they've upvoted, vs. downvoted.
+    [ ] Show the percent of posts they've voted on, out of all posts in the
+        cache.
+    [ ] Show their most-liked tags. This is trickier than it sounds, because a
+        tag that's been upvoted once has a 100% upvote rate. And also, a tag
+        that's been upvoted 2,000 times might have been downvoted 20,000. Need
+        to create an equation that rates tags based on their upvote rate *and*
+        total number of votes.
 [ ] Show users posts based on their previous votes
     [ ] Refactor and rewrite the Bayes Classifier to work with the new code and
         access the database.

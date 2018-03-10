@@ -15,35 +15,74 @@ class NaiveBayesClassifier(object):
     How it works:
 
     Well first of all, let's talk about syntax. Math is INCREDIBLY hard to do
-    in UTF-8, so I'm just going to make some stuff up:
+    in plain text, so I'm just going to make some stuff up:
 
     syntax         | meaning
     P(A)           | The probability of statement 'A' being true.
     P(A|B)         | The probability of 'A' being true, assuming 'B' is true.
+    N()            | The number of posts
+    N(V)           | The number of posts voted on (up or down) by the user
+    N(U)           | The number of posts upvoted by the user
+    N(U, T0)       | Same as above, but they also have a tag that we're calling
+                   | tag 0 for convenience. (will make more sense later)
     A&B            | A and B
     pi{i=0->5}(i)  | The pi notation of i=0 to 5, multiplying i. In other
                    | words: 0*1*2*3*4*5
 
-    Bayes's Theorem says, given evidence E and a state we're interested in S:
+    This is Bayes' Theorem:
 
-    P(S|E) = P(E|S) * P(S) / P(E)
+    P(A|B) = P(B|A) * P(A) / P(B)
 
-    Let's say that we want to know how likely someone is to like a certain
-    Post. The best indicator for this is the tags. Let's say that 'G' is
-    the statement "this post is good", and 'T0' is the statement "this post
-    has tag number 0".
+    But what does that actually mean? Well, Bayes' Theorem is a way of
+    computing how likely something is to be true, given a list of evidence. For
+    example, let's say we want to guess the probability that someone will think
+    a Hypnohub post is good. We'll call that "P(G)". To do this, we'll look at
+    the tags of the post (T = T[0], T[1], T[2], ... T[N]). Bayes' Theorem tells
+    us that we can calculate the answer like so:
+
+    P(G|T) = P(T|G) * P(G) / P(T)
+
+    The probability that a user will like a given post, if all we know about it
+    is the tags, is equal to the probability that a good post would have
+    identical tags, multiplied by the probability that any random post is good,
+    divided by the probability of any random post having identical tags.
+
+    So far, this equation seems pretty useless. After all, how are we supposed
+    to figure out P(T|G), or even P(T)? There are so many possible tags that a
+    post can have, that the odds of finding even a single other post with
+    matching tags is pretty much 0. Well, there's actually a way to fudge these
+    two numbers, that I'll get to later. For now, let's look at a simpler
+    example.
+
+    Let's say that we've found the only post on Hypnohub with a single tag.
+    Every other post has a normal number of tags, but this one has only one.
+    We can calculate the probability that the user will like it like so:
 
     P(G|T0) = P(T0|G) * P(G) / P(T0)
 
-    This would work really well if we only had one tag to deal with, but
-    let's say we're looking at a Post with "n" tags: T0, T1, T2, ..., Tn
+    But how do we calculate all these values? Well, it's actually pretty easy!
 
-    Ta = pi{i=0->n}(Tn)
-    P(G|Ta) = P(Ta|G) * P(G) / P(Ta)
+    P(T0|G) is equal to the probability that a post with T0 is good. To find
+    this, we just have to take the number of posts with T0 that the user has
+    upvoted, and divide by the total number of posts with T0 that the user has
+    voted on:
 
-    Well that won't work at all! P(Ta) will only match something
-    with exactly identical tags, and we almost definitely don't have
-    anything like /that/ in our dataset.
+    P(T0|G) = num upvoted with T0 / num voted on with T0
+    P(T0|G) = N(U, T0) / N(T0)
+
+    P(G) is even easier! It's equal to the total number of posts the user has
+    upvoted, divided by the total number of posts the user has voted on.
+
+    P(G) = num upvoted / num voted on
+    P(G) = N(U) / N(V)
+
+    And for P(T0), all you have to do is find the number of cached posts with
+    T0, and divide by the total number of cached posts.
+
+    P(T0) = num posts with T0 / num posts
+    P(T0) = N(T0) / N()
+
+    TODO: Stopped rewording here, but need to continue.
 
     Let's try something else. Let's intentionally make a bad(ish) assumption
     and say that the tags are conditionally independent. Meaning that a post

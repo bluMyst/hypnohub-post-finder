@@ -1,5 +1,6 @@
 # Script-generated files:
 dataset.pickle.bz2
+dataset.pickle
 *.sqlite3
 
 # Python stuff.
