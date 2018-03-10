@@ -21,8 +21,25 @@ processing Hypnohub's responses.
 http://hypnohub.net/help/api
 """
 
+class RequestDelayer:
+    def __init__(self):
+        self.no_requests_until = time.time()
+
+    def _request(self, no_requests_for):
+        if self.no_requests_until > time.time():
+            time.sleep(self.no_requests_until - time.time())
+
+        self.no_requests_until = time.time() + no_requests_for
+
+    def light_request(self):
+        self._request(DELAY_BETWEEN_LIGHT_REQUESTS)
+
+    def heavy_request(self):
+        self._request(DELAY_BETWEEN_HEAVY_REQUESTS)
+
 class HypnohubAPIRequester:
     def __init__(self):
+        self.request_delayer = RequestDelayer()
         self.check_robots_txt()
 
     def check_robots_txt(self):
@@ -38,7 +55,7 @@ class HypnohubAPIRequester:
 
         rp.read()
 
-        time.sleep(DELAY_BETWEEN_LIGHT_REQUESTS)
+        self.request_delayer.light_request()
 
         robots_allowed = rp.can_fetch(
             BASE_USERAGENT,
@@ -60,9 +77,9 @@ class HypnohubAPIRequester:
         database).
         """
 
-        file_url    = 'http:' + post['file_url']
-        sample_url  = 'http:' + post['sample_url']
-        preview_url = 'http:' + post['preview_url']
+        post['file_url']    = 'http:' + post['file_url']
+        post['sample_url']  = 'http:' + post['sample_url']
+        post['preview_url'] = 'http:' + post['preview_url']
 
         if 'parent' not in post:
             post['parent'] = None
@@ -112,9 +129,9 @@ class HypnohubAPIRequester:
         response = json.loads(response.text)
 
         if len(response) > 100:
-            time.sleep(DELAY_BETWEEN_HEAVY_REQUESTS)
+            self.request_delayer.heavy_request()
         else:
-            time.sleep(DELAY_BETWEEN_LIGHT_REQUESTS)
+            self.request_delayer.light_request()
 
         return map(self.process_post, response)
 
