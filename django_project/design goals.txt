@@ -5,6 +5,9 @@ Overall design:
 [X] Automatically cache every post on Hypnohub and save all relevant info.
     [X] Automatically update existing posts with new info.
     [X] Automatically delete posts to match deletions on HypnoHub.
+[X] Allow users to permalink to posts.
+    [X] Add a "permalink: [url]" textbox somewhere in the image viewer, with a
+        "copy to clipboard" button.
 
 [ ] Let users create accounts and log in.
     [ ] Let users recover their passwords via email.
@@ -47,9 +50,6 @@ Overall design:
             [ ] Shows them the total count of posts added.
             [ ] Shows them previews of each post and lets them click each
                 preview to go to that post's permalink page, inside HHPF.
-[ ] Allow users to permalink to posts.
-    [ ] Add a "permalink: [url]" textbox somewhere in the image viewer, with a
-        "copy to clipboard" button.
 [ ] Every page should be styled consistently.
 
 

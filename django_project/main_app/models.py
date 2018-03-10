@@ -1,4 +1,5 @@
 from django.db import models
+from django.urls import reverse
 
 from django.core.exceptions import ValidationError
 from django.core import validators
@@ -84,6 +85,15 @@ class Post(models.Model):
     @property
     def page_url(self):
         return f"http://hypnohub.net/post/show/{self.id}"
+
+    @property
+    def permalink(self):
+        # NOTE: This is temporary and needs to get changed in the far future if
+        # this ever becomes a proper web service.
+        return 'http://127.0.0.1:8000' + self.get_absolute_url()
+
+    def get_absolute_url(self):
+        return reverse('view-a-post-by-id', kwargs={'id': self.id})
 
 
 class UserVote(models.Model):

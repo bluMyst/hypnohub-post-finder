@@ -1,5 +1,7 @@
 from django.shortcuts import render
 
+from .models import Post
+
 # TODO: Every time the user requests something that requires knowledge about
 # Post's, check what was the last time we've updated the database with fresh
 # Hypnohub data. If it's been more than - say - a week, update it in a separate
@@ -9,37 +11,36 @@ from django.shortcuts import render
 
 def main_menu(request):
     context = {
-        'links': [
-            ('view-a-best-post',   'View the best posts we can find for you..'),
-            ('view-a-hot-post',    'View a mix of good and bad posts, to help train'
-                                   ' the AI.'),
-            ('view-a-random-post', 'View posts completely at random, to teach the AI'
-                                   ' about your preferences.'),
-        ],
-
         'title': "Site Map",
+
+        'links': [
+            ('view-a-best-post',
+                 'View the best posts we can find for you.'),
+
+            ('view-a-hot-post',
+                 'View a mix of good and bad posts, to help train the AI.'),
+
+            ('view-a-random-post',
+                 'View posts completely at random, to teach the AI about your'
+                 ' preferences.'),
+        ],
     }
 
     return render(template_name='main_app/path_index.html',
                   request=request,
                   context=context)
 
-def view_id(request, id_, **context):
-    context = {
-        'post_id': id_,
-
-        # TODO: Retrieve preview url
-        # TODO: Store Hypnohub data in the database.
-        'image_url': "http://hypnohub.net/data/image/2d3bec75d3c52b70f61e592250b22ed7.jpg",
-
-        **context
-    }
+def view_id(request, id, **context):
+    # TODO: Error page on invalid id.
+    context['post'] = Post.objects.get(id=id)
 
     return render(template_name='main_app/post_view.html',
                   request=request,
                   context=context)
 
-permalink = view_id
+def permalink(request, id):
+    context = {'tabtitle': str(Post.objects.get(id=id)) + ' (permalink)'}
+    return view_id(request, id, **context)
 
 def best(request):
     return view_id(request, 1337, tabtitle="Best Posts")

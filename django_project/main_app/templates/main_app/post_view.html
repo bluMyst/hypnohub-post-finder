@@ -2,17 +2,14 @@
 
 {% comment %}
   Required context:
-    post_id:   Hypnohub post ID of the post to be shown to the user.
-    image_url: URL of the image matching the post ID. (Can be preview or
-               regular, but keep in mind it'll be loaded directly into this
-               page.)
+    post: A Post instance to display to the user.
 
   Optional context:
     tabtitle: defaults to "Post View"
 {% endcomment %}
 
 {% block title %}
-  ID: {{ post_id }}
+  {{ post }}
 {% endblock %}
 
 {% block tabtitle %}
@@ -59,6 +56,9 @@
   </style>
 
   <script>
+    // TODO: All this code is getting way out of hand! We need to split it up
+    // into multiple files again.
+
     class AsyncAPIRequestManager {
       // Gives the user simple feedback on the progress of an
       // asynchronous API request. Also stops them from sending more
@@ -125,7 +125,7 @@
       }
     }
 
-    var postId = {{ post_id }};
+    var postId = {{ post.id }};
     var upvoteButton;
     var downvoteButton;
     var saveButton;
@@ -215,6 +215,7 @@
       onSaveStart, onSaveDone, onSaveFail
     );
 
+    // TODO: Don't use onload, onclick, etc. Add event listeners instead.
     window.onload = function () {
       upvoteButton   = document.getElementsByClassName('upvote')[0];
       downvoteButton = document.getElementsByClassName('downvote')[0];
@@ -224,6 +225,13 @@
       downvoteButton.onclick = downvote;
       saveButton.onclick = onSaveButtonClicked;
       resetSaveButton();
+
+      document.getElementById("copy_permalink").onclick = function () {
+        var permalinkTextbox = document.getElementById("permalink_textbox");
+        var permalinkUrl = permalinkTextbox.value;
+        permalinkTextbox.select();
+        document.execCommand("copy");
+      }
     }
   </script>
 {% endblock %}
@@ -232,6 +240,10 @@
   <p>A (up) and Z (down) to vote.</p>
 
   <div id="save_button">enable javascript to save</div>
+  <div class="permalink_area">
+    permalink: <input id='permalink_textbox' readonly value="{{ post.permalink }}">
+    <a href="#" id="copy_permalink">copy</a>
+  </div>
 
   <div class="voting_area">
     <div class="vote_controls">
@@ -239,8 +251,8 @@
       <a href="#" class="vote downvote inactive"> \/ </a>
     </div>
 
-    <a href="http://hypnohub.net/post/show/{{ post_id }}/">
-      <img src="{{ image_url }}" class="rating_image"/>
+    <a href="http://hypnohub.net/post/show/{{ post.id }}/">
+      <img src="{{ post.sample_url }}" class="rating_image"/>
     </a>
   </div>
 {% endblock %}
