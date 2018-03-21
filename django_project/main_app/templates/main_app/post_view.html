@@ -8,6 +8,11 @@
     tabtitle: defaults to "Post View"
 {% endcomment %}
 
+{% comment %}
+  TODO: Check if the post has been voted on and style the vote buttons
+  accordingly.
+{% endcomment %}
+
 {% block title %}
   {{ post }}
 {% endblock %}
@@ -17,10 +22,11 @@
 {% endblock %}
 
 {% block head %}
-<!--
-  TODO: Everything in here is horribly hacky and barely works. I should just
-  learn html and CSS already, I guess. As frustrating as they are to work with.
--->
+  {% comment %}
+    TODO: Everything in here is horribly hacky and barely works. I should just
+    learn html and CSS already, I guess. As frustrating as they are to work
+    with.
+  {% endcomment %}
 
   <style>
     /* https://i.imgur.com/Q3cUg29.gif */
@@ -62,8 +68,9 @@
   </style>
 
   <script>
-    // This is used by the vote button script below.
+    // Info for the vote button script.
     var postId = {{ post.id }};
+    var voteUrl = "{% url 'vote-api-call' %}";
   </script>
 
   <script src="/static/main_app/AsyncAPIRequestManager.js"></script>
@@ -82,8 +89,16 @@
       </p>
     </div>
 
-    <a href="#" class="vote upvote inactive">upvote</a>
-    <a href="#" class="vote downvote inactive">downvote</a>
+    {% if post.vote and post.vote.vote_type == 1 %}
+      <a href="#" class="vote upvote active">upvote</a>
+      <a href="#" class="vote downvote inactive">downvote</a>
+    {% elif post.vote and post.vote.vote_type == -1 %}
+      <a href="#" class="vote upvote inactive">upvote</a>
+      <a href="#" class="vote downvote active">downvote</a>
+    {% else %}
+      <a href="#" class="vote upvote inactive">upvote</a>
+      <a href="#" class="vote downvote inactive">downvote</a>
+    {% endif %}
 
     <p>You can use A (up) and Z (down) to vote.</p>
 

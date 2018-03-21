@@ -3,6 +3,10 @@
 // Remember to set postId somewhere in the HTML, or this file won't know what
 // we're voting on.
 
+// Also needs voteUrl
+
+// TODO: Clicking upvote after upvoting should toggle the upvote off.
+
 var upvoteButton;
 var downvoteButton;
 var voteManager = new AsyncAPIRequestManager();
@@ -37,13 +41,13 @@ function onVoteFail(direction) {
 // TODO: Static /vote URL
 voteManager.setAPICall(
     "upvote",
-    "GET", "/vote?up=true&id=" + postId,
+    "GET", voteUrl + "?up=true&id=" + postId,
     onVoteStart(true), onVoteDone(true), onVoteFail(true)
 );
 
 voteManager.setAPICall(
     "downvote",
-    "GET", "/vote?up=false&id=" + postId,
+    "GET", voteUrl + "?up=false&id=" + postId,
     onVoteStart(false), onVoteDone(false), onVoteFail(false)
 );
 
