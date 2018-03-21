@@ -6,6 +6,10 @@ from django.urls import reverse
 from django.core.exceptions import ValidationError
 from django.core import validators
 
+UPVOTE   =  1
+MEHVOTE  =  0
+DOWNVOTE = -1
+
 md5_validator = validators.RegexValidator(
     regex="^[0-9a-f]{32}$",
     flags=re.IGNORECASE,
@@ -138,9 +142,9 @@ class UserVote(models.Model):
 
     vote_type = models.PositiveSmallIntegerField(
         choices=(
-            ( 1, 'upvote'),
-            ( 0, 'meh'),
-            (-1, 'downvote'),
+            (UPVOTE,   'upvote'),
+            (MEHVOTE,  'meh'),
+            (DOWNVOTE, 'downvote'),
         ),
     )
 
