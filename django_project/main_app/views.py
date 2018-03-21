@@ -1,7 +1,9 @@
-from django.shortcuts import render
-from django.http import Http404
+import json
 
-from .models import Post
+from django.shortcuts import render
+from django.http import Http404, HttpResponse
+
+from .models import Post, UserVote, UPVOTE, MEHVOTE, DOWNVOTE
 
 def main_menu(request):
     context = {
@@ -48,3 +50,28 @@ def hot(request):
 
 def random(request):
     return view_id(request, 1337, tabtitle="Random Posts")
+
+def vote(request):
+    try:
+        id = json.loads(request.GET['id'])
+        vote_type = json.loads(request.GET['up'])
+    except KeyError:
+        return HttpResponse("false", content_type="application/json")
+
+    vote_type = UPVOTE if vote_type else DOWNVOTE
+
+    try:
+        post = Post.objects.get(id=id)
+    except Post.DoesNotExist:
+        return HttpResponse("false", content_type="application/json")
+
+    try:
+        vote = UserVote.objects.get(post=post)
+    except UserVote.DoesNotExist:
+        vote = UserVote(post=post, vote_type=vote_type)
+    else:
+        vote.vote_type = vote_type
+
+    vote.save()
+
+    return HttpResponse("true", content_type="application/json")

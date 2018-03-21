@@ -7,6 +7,7 @@ urlpatterns = [
     path('hot',    views.hot, name='view-a-hot-post'),
     path('random', views.random, name='view-a-random-post'),
     path('post/<int:id>', views.permalink, name='view-a-post-by-id'),
+    path('api/vote', views.vote, name='vote-api-call'),
 
     path('', views.main_menu, name='main-menu'),
 ]
