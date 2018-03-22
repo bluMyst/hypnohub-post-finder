@@ -1,8 +1,7 @@
 import random
 import math
-from typing import List
 
-import post_data
+from .models import UserVote, Post, UPVOTE, MEHVOTE, DOWNVOTE
 
 class NaiveBayesClassifier(object):
     """
@@ -114,45 +113,42 @@ class NaiveBayesClassifier(object):
 
     That's all it takes!
     """
+    #TODO: Learn LaTeX so the above docstring can be its own file.
 
-    def __init__(self, good_posts: List[List[str]],
-                 bad_posts: List[List[str]]):
-        good_posts, bad_posts = list(good_posts), list(bad_posts)
+    def __init__(self):
+        #TODO: Have a user system
+        upvotes   = UserVote.objects.filter(vote_type=UPVOTE)
+        downvotes = UserVote.objects.filter(vote_type=DOWNVOTE)
 
-        self.ngood = len(good_posts)
-        self.total = len(bad_posts) + len(good_posts)
+        self.ngood = len(upvotes)
+        self.total = len(downvotes) + len(upvotes)
 
         try:
             self.p_g = self.ngood / self.total
         except ZeroDivisionError:
             self.p_g = None
 
-        # {'tag_name': [n_good_posts, n_total_posts], ...}
-        self.tag_history = dict()
+        # {'tag_name': {'good': n_good_posts, 'total': n_total_posts}, ...}
+        # Cache calculations for each tag so we don't have to repeat them over
+        # and over again.
+        self.tag_cache = dict()
 
-        for post in good_posts:
-            self._add_tags(post, True)
+        # Populate the tag cache
+        for upvote in upvotes:
+            self._add_tags(upvote.post, True)
 
-        for post in bad_posts:
-            self._add_tags(post, False)
+        for downvote in downvotes:
+            self._add_tags(downvote.post, False)
 
-    @classmethod
-    def from_dataset(cls, dataset: post_data.Dataset, *args, **kwargs):
-        """ Alternative constructor. All * and ** args passed to __init__"""
-        good_posts = [i.tags for i in dataset.get_good() if hasattr(i, 'tags')]
-        bad_posts  = [i.tags for i in dataset.get_bad()  if hasattr(i, 'tags')]
-
-        return cls(good_posts, bad_posts, *args, **kwargs)
-
-    def _add_tags(self, post: List[str], is_good: bool):
-        for tag in post:
-            if tag not in self.tag_history:
-                self.tag_history[tag] = [0, 0]
+    def _add_tags(self, post, is_good):
+        for tag in post.tags_set:
+            if tag not in self.tag_cache:
+                self.tag_cache[tag] = {'good': 0, 'total': 0}
 
             if is_good:
-                self.tag_history[tag][0] += 1
+                self.tag_cache[tag]['good'] += 1
 
-            self.tag_history[tag][1] += 1
+            self.tag_cache[tag]['total'] += 1
 
     def p_t_g(self, tag):
         """
@@ -161,7 +157,7 @@ class NaiveBayesClassifier(object):
         What's the probability of this tag existing in a random good post?
         """
         try:
-            return self.tag_history[tag][0] / self.ngood
+            return self.tag_cache[tag]['good'] / self.ngood
         except ZeroDivisionError:
             # If we don't have any data on good posts.
             if self.total > 0:
@@ -176,28 +172,30 @@ class NaiveBayesClassifier(object):
         What's the probability of any post having this tag?
         """
         try:
-            return self.tag_history[tag][1] / self.total
+            return self.tag_cache[tag]['total'] / self.total
         except ZeroDivisionError:
             # Just take a wild guess, if we have no dataset to try.
             return 0.01
 
-    def single_tag_predict(self, tag, p_g=None):
-        if p_g is None:
-            p_g = self.p_g
+    def _single_tag_predict(self, tag):
+        #TODO: This will often output 0 when it doesn't have enough data to
+        # know for sure. Bug or feature? Probably, what this means is we need
+        # to be careful how we select Posts to show the user. Don't just show
+        # them the best stuff all the time, and instead every now and then
+        # stir in something that with tags that we want to know more about.
+        if tag not in self.tag_cache:
+            return 1
 
-        if tag not in self.tag_history:
-            return p_g
+        return self.p_t_g(tag) / self.p_t(tag)
 
-        return p_g * self.p_t_g(tag) / self.p_t(tag)
-
-    def predict(self, post: List[str]):
+    def predict(self, post):
         """
         Guess the probability that the user will like a given post, based on
         tags.
         """
-        temp = self.p_g
+        prediction = self.p_g
 
-        for tag in post:
-            temp = self.single_tag_predict(tag, temp)
+        for tag in post.tags_set:
+            prediction *= self._single_tag_predict(tag)
 
-        return temp
+        return prediction

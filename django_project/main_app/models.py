@@ -126,6 +126,10 @@ class Post(models.Model):
         # this ever becomes a proper web service.
         return 'http://127.0.0.1:8000' + self.get_absolute_url()
 
+    @property
+    def tags_set(self):
+        return set(self.tags.split())
+
     def get_absolute_url(self):
         return reverse('view-a-post-by-id', kwargs={'id': self.id})
 
@@ -137,16 +141,15 @@ class UserVote(models.Model):
         primary_key=True,
 
         # If the Post is deleted, also delete this vote.
-        on_delete=models.CASCADE,
-    )
+        on_delete=models.CASCADE)
 
     vote_type = models.PositiveSmallIntegerField(
         choices=(
             (UPVOTE,   'upvote'),
             (MEHVOTE,  'meh'),
-            (DOWNVOTE, 'downvote'),
-        ),
-    )
+            (DOWNVOTE, 'downvote')))
+
+    #TODO: Have usernames that tie into Django's built-in user system.
 
     def __str__(self):
         return f"vote {self.vote_type:+} for #{self.post.id}"
